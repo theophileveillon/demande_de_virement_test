@@ -1,189 +1,622 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <title>Demande de virement</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <style>
-    body {
-      font: 16px system-ui;
-      max-width: 760px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-    label {
-      display: block;
-      margin: 0.8rem 0;
-    }
-    input,
-    select,
-    textarea {
-      width: 100%;
-      padding: 0.55rem;
-      box-sizing: border-box;
-    }
-    button {
-      padding: 0.7rem 1rem;
-      margin: 0.5rem 0;
-    }
-    .hidden {
-      display: none;
-    }
-    .err {
-      color: #a00;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.8rem;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demande de virement</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  body { font: 16px system-ui; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; }
+  label { display:block; margin: 0.9rem 0 0.3rem; font-weight: 600; }
+  input, select, textarea { width:100%; padding:0.55rem; box-sizing:border-box; font-size:1rem; }
+  button { padding:0.7rem 1.1rem; margin:0.4rem 0.4rem 0.4rem 0; cursor:pointer; }
+  .hidden { display:none !important; }
+  .err { color:#a00; font-size:0.9rem; margin-top:0.2rem; }
+  .step { border:1px solid #ddd; border-radius:8px; padding:1.2rem; margin-top:1rem; }
+  table { width:100%; border-collapse:collapse; margin-top:0.6rem; }
+  td, th { border:1px solid #ccc; padding:0.4rem; font-size:0.9rem; }
+  th { background:#f4f4f4; }
+  .row-del { color:#a00; cursor:pointer; background:none; border:none; font-size:1.1rem; }
+  .total { text-align:right; font-weight:600; margin-top:0.5rem; }
+  .card { border:1px solid #ccc; border-radius:8px; padding:0.8rem; margin:0.5rem 0; cursor:pointer; }
+  .card:hover { background:#f9f9f9; }
+  .card.selected { border-color:#2a6; background:#eefbf3; }
+  .filebox { border:2px dashed #bbb; border-radius:8px; padding:1rem; text-align:center; }
+  .filelist { margin-top:0.5rem; font-size:0.9rem; }
+  .recap dt { font-weight:600; margin-top:0.6rem; }
+  .recap dd { margin:0.1rem 0 0.1rem 0; }
+  #progressbar { height:6px; background:#eee; border-radius:3px; margin:1rem 0; overflow:hidden; }
+  #progressbar div { height:100%; background:#2a6; width:0%; transition:width .3s; }
+</style>
 </head>
 <body>
-  <h1>Demande de virement</h1>
-  <div id="signin"></div>
-  <p id="status">Connexion requise.</p>
 
-  <form id="f" class="hidden">
-    <label>Description courte
+<h1>Demande de virement</h1>
+<div id="signin"></div>
+<p id="status">Connexion requise.</p>
+<div id="progressbar" class="hidden"><div id="progressbar-inner"></div></div>
+
+<form id="f" class="hidden">
+
+  <!-- ÉTAPE 0 : description + type -->
+  <div class="step" data-step="0">
+    <label>Description courte du virement
       <input name="description" required>
     </label>
+    <div id="descErr" class="err hidden"></div>
 
-    <label>Type
-      <select name="type">
-        <option>NDF</option>
-        <option>DSH</option>
-        <option>FAC</option>
-      </select>
+    <label>Mon justificatif est :</label>
+    <div class="card" data-type="NDF"><b>Note De Frais</b><br><small>Rembourser un membre de l'AEn7 avec ticket/facture à son nom</small></div>
+    <div class="card" data-type="DSH"><b>Déclaration Sur l'Honneur</b><br><small>Aucun justificatif n'est obtenable (ex : site de seconde main)</small></div>
+    <div class="card" data-type="FAC"><b>Facture</b><br><small>Paiement d'un prestataire extérieur</small></div>
+
+    <div style="margin-top:1.2rem">
+      <button type="button" id="next0" disabled>Suivant</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 1a : NDF -->
+  <div class="step hidden" data-step="1-NDF">
+    <h3>Note de frais</h3>
+    <p><i>Une NDF permet UNIQUEMENT de rembourser un membre de l'AEn7. Les tickets de carte, les screens de compte bancaire ou "jte jure j'ai payé" ne sont pas acceptés.</i></p>
+
+    <label>Détail des achats</label>
+    <table id="ndfTable">
+      <thead><tr><th>Nom</th><th>Quantité</th><th>Prix unitaire (€)</th><th>Total</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <button type="button" id="ndfAddRow">+ Ajouter une ligne</button>
+    <div class="total">Total général : <span id="ndfTotal">0,00 €</span></div>
+    <div id="ndfErr" class="err hidden"></div>
+
+    <label>Justificatifs (photos, PDF, HEIC — 10 Mo max, 10 fichiers max)</label>
+    <div class="filebox">
+      <input type="file" id="ndfFiles" multiple accept="image/*,.heic,.pdf">
+      <div class="filelist" id="ndfFilesList"></div>
+    </div>
+    <div id="ndfFileErr" class="err hidden"></div>
+
+    <div id="ndfBenefBlock"></div>
+
+    <div style="margin-top:1.2rem">
+      <button type="button" class="back">Précédent</button>
+      <button type="button" class="next" data-target="recap">Suivant</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 1b : DSH -->
+  <div class="step hidden" data-step="1-DSH">
+    <h3>Déclaration sur l'honneur</h3>
+    <p><i>Une DSH n'est valable que si aucun justificatif n'est obtenable par aucun moyen. Vous pouvez demander un ticket de caisse à une entreprise, elle est obligée de conserver une trace de votre paiement.</i></p>
+
+    <label>Raison de la non-obtention du justificatif
+      <textarea name="reason" rows="3"></textarea>
     </label>
+    <div id="reasonErr" class="err hidden"></div>
 
-    <label>Bénéficiaire existant
-      <select name="beneficiaryId" id="benef"></select>
-    </label>
+    <label>Détail des achats</label>
+    <table id="dshTable">
+      <thead><tr><th>Nom</th><th>Quantité</th><th>Prix unitaire (€)</th><th>Total</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <button type="button" id="dshAddRow">+ Ajouter une ligne</button>
+    <div class="total">Total général : <span id="dshTotal">0,00 €</span></div>
+    <div id="dshTableErr" class="err hidden"></div>
 
-    <fieldset>
-      <legend>Nouveau bénéficiaire (NDF uniquement)</legend>
-      <div class="grid">
-        <input name="prenom" placeholder="Prénom">
-        <input name="nom" placeholder="Nom">
-        <input name="email" placeholder="Email">
-        <input name="phone" placeholder="Téléphone">
-        <input name="role" placeholder="Rôle" value="Membre">
-        <input name="iban" placeholder="IBAN">
-      </div>
-    </fieldset>
+    <label>Justificatifs (photos, PDF, HEIC — 10 Mo max, 10 fichiers max)</label>
+    <div class="filebox">
+      <input type="file" id="dshFiles" multiple accept="image/*,.heic,.pdf">
+      <div class="filelist" id="dshFilesList"></div>
+    </div>
+    <div id="dshFileErr" class="err hidden"></div>
 
-    <label>Détail des achats
-      <textarea name="ndfTable"></textarea>
-    </label>
+    <div id="dshBenefBlock"></div>
 
-    <label>Justificatifs
-      <textarea name="justificatifs"></textarea>
-    </label>
+    <div style="margin-top:1.2rem">
+      <button type="button" class="back">Précédent</button>
+      <button type="button" class="next" data-target="recap">Suivant</button>
+    </div>
+  </div>
 
-    <label>Première NDF ?
-      <input name="firstNdf">
-    </label>
+  <!-- ÉTAPE 1c : FACTURE -->
+  <div class="step hidden" data-step="1-FAC">
+    <h3>Facture</h3>
+    <p><i>Un devis, même signé, n'est pas une facture. Tout prestataire est dans l'obligation de vous fournir une facture si vous la demandez.</i></p>
 
-    <label>Raison DSH
-      <textarea name="reason"></textarea>
-    </label>
+    <div id="facBenefBlock"></div>
 
-    <label>Première DSH ?
-      <input name="firstDsh">
-    </label>
-
-    <label>Prestataire
-      <input name="provider">
-    </label>
-
-    <label>IBAN prestataire
-      <input name="providerIban">
-    </label>
-
-    <label>Libellé
+    <label>Libellé à ajouter au virement (si demandé par le prestataire)
       <input name="label">
     </label>
 
-    <label>Facture / référence
-      <textarea name="invoicePdf"></textarea>
-    </label>
+    <label>Facture (PDF uniquement, 10 Mo max, 10 fichiers max)</label>
+    <div class="filebox">
+      <input type="file" id="facFiles" multiple accept="application/pdf">
+      <div class="filelist" id="facFilesList"></div>
+    </div>
+    <div id="facFileErr" class="err hidden"></div>
 
-    <button>Envoyer</button>
-  </form>
+    <div style="margin-top:1.2rem">
+      <button type="button" class="back">Précédent</button>
+      <button type="button" class="next" data-target="recap">Suivant</button>
+    </div>
+  </div>
 
-  <p id="msg"></p>
+  <!-- ÉTAPE RÉCAP -->
+  <div class="step hidden" data-step="recap">
+    <h3>Récapitulatif</h3>
+    <dl class="recap" id="recapContent"></dl>
+    <div style="margin-top:1.2rem">
+      <button type="button" class="back">Précédent</button>
+      <button type="submit" id="submitBtn">Envoyer la demande</button>
+    </div>
+  </div>
 
-  <script>
-    const API = 'https://script.google.com/macros/s/AKfycbw35IOHOWFRTwj0HVCzfpMzKCB6RJGp2xI5OvZUsZhnqzRsQURv9nEYA9q83Y5jN7Bg6w/exec',
-      CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
-    let token = '';
-    const $ = x => document.querySelector(x);
+</form>
 
-    function msg(x, e) {
-      $('#msg').textContent = x;
-      $('#msg').className = e ? 'err' : '';
+<p id="msg"></p>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbw35IOHOWFRTwj0HVCzfpMzKCB6RJGp2xI5OvZUsZhnqzRsQURv9nEYA9q83Y5jN7Bg6w/exec';
+const CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
+
+let token = '';
+let ctx = null; // { email, club, beneficiaires }
+let chosenType = null;
+let selectedBenef = { NDF: '', DSH: '', FAC: '' };
+let newBenef = { NDF: null, DSH: null, FAC: null };
+let files = { NDF: [], DSH: [], FAC: [] };
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+function showMsg(text, isErr) {
+  $('#msg').textContent = text;
+  $('#msg').className = isErr ? 'err' : '';
+}
+
+function fmtEUR(n) {
+  return (isNaN(n) ? 0 : n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+// ---------- CONNEXION ----------
+function credential(r) {
+  token = r.credential;
+  $('#status').textContent = 'Vérification en cours…';
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'context', idToken: token })
+  })
+    .then(x => x.json())
+    .then(x => {
+      if (!x.ok) throw new Error(x.error || 'refus');
+      ctx = x;
+      $('#status').textContent = 'Connecté : ' + x.email + ' — Club : ' + x.club;
+      buildBenefBlocks();
+      $('#f').classList.remove('hidden');
+    })
+    .catch(e => {
+      $('#status').textContent = '';
+      showMsg('Accès refusé : ' + e.message, true);
+    });
+}
+
+window.onload = () => {
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: credential });
+  google.accounts.id.renderButton($('#signin'), { theme: 'outline', size: 'large' });
+};
+
+// ---------- NAVIGATION ----------
+function goTo(stepName) {
+  $$('.step').forEach(s => s.classList.add('hidden'));
+  document.querySelector(`.step[data-step="${stepName}"]`).classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
+$$('.card').forEach(c => c.addEventListener('click', () => {
+  $$('.card').forEach(x => x.classList.remove('selected'));
+  c.classList.add('selected');
+  chosenType = c.dataset.type;
+  $('#next0').disabled = false;
+}));
+
+$('#next0').addEventListener('click', () => {
+  const desc = document.querySelector('[name=description]').value.trim();
+  if (!desc) {
+    $('#descErr').textContent = 'La description est obligatoire.';
+    $('#descErr').classList.remove('hidden');
+    return;
+  }
+  $('#descErr').classList.add('hidden');
+  goTo('1-' + chosenType);
+});
+
+$$('.back').forEach(b => b.addEventListener('click', () => {
+  const cur = b.closest('.step').dataset.step;
+  goTo(cur === 'recap' ? '1-' + chosenType : '0');
+}));
+
+$$('.next').forEach(b => b.addEventListener('click', () => {
+  if (!validateStep(chosenType)) return;
+  buildRecap();
+  goTo('recap');
+}));
+
+// ---------- TABLEAUX NDF / DSH ----------
+function addRow(tableSel, totalSel) {
+  const tbody = document.querySelector(tableSel + ' tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input class="r-nom" placeholder="Nom de l'objet"></td>
+    <td><input class="r-qte" type="number" min="1" value="1" style="width:70px"></td>
+    <td><input class="r-pu" type="number" min="0" step="0.01" style="width:90px"></td>
+    <td class="r-total">0,00 €</td>
+    <td><button type="button" class="row-del">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  const recalc = () => {
+    const qte = parseFloat(tr.querySelector('.r-qte').value) || 0;
+    const pu = parseFloat(tr.querySelector('.r-pu').value) || 0;
+    tr.querySelector('.r-total').textContent = fmtEUR(qte * pu);
+    updateTotal(tableSel, totalSel);
+  };
+  tr.querySelector('.r-qte').addEventListener('input', recalc);
+  tr.querySelector('.r-pu').addEventListener('input', recalc);
+  tr.querySelector('.row-del').addEventListener('click', () => { tr.remove(); updateTotal(tableSel, totalSel); });
+}
+
+function updateTotal(tableSel, totalSel) {
+  let sum = 0;
+  document.querySelectorAll(tableSel + ' tbody tr').forEach(tr => {
+    const qte = parseFloat(tr.querySelector('.r-qte').value) || 0;
+    const pu = parseFloat(tr.querySelector('.r-pu').value) || 0;
+    sum += qte * pu;
+  });
+  document.querySelector(totalSel).textContent = fmtEUR(sum);
+}
+
+function readTable(tableSel) {
+  const rows = [];
+  document.querySelectorAll(tableSel + ' tbody tr').forEach(tr => {
+    const nom = tr.querySelector('.r-nom').value.trim();
+    const qte = parseFloat(tr.querySelector('.r-qte').value) || 0;
+    const pu = parseFloat(tr.querySelector('.r-pu').value) || 0;
+    if (nom) rows.push({ nom, qte, pu, total: qte * pu });
+  });
+  return rows;
+}
+
+$('#ndfAddRow').addEventListener('click', () => addRow('#ndfTable', '#ndfTotal'));
+$('#dshAddRow').addEventListener('click', () => addRow('#dshTable', '#dshTotal'));
+addRow('#ndfTable', '#ndfTotal');
+addRow('#dshTable', '#dshTotal');
+
+// ---------- IBAN ----------
+function cleanIban(iban) {
+  return iban.replace(/\s+/g, '').toUpperCase();
+}
+function formatIban(iban) {
+  const c = cleanIban(iban);
+  return c.replace(/(.{4})/g, '$1 ').trim();
+}
+function ibanValid(iban) {
+  const c = cleanIban(iban);
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(c)) return false;
+  const rearranged = c.slice(4) + c.slice(0, 4);
+  const numeric = rearranged.replace(/[A-Z]/g, ch => (ch.charCodeAt(0) - 55).toString());
+  let remainder = numeric;
+  while (remainder.length > 2) {
+    const chunk = remainder.slice(0, 9);
+    remainder = (parseInt(chunk, 10) % 97) + remainder.slice(chunk.length);
+  }
+  return parseInt(remainder, 10) % 97 === 1;
+}
+
+// ---------- BLOCS BÉNÉFICIAIRE / PRESTATAIRE ----------
+function buildBenefBlocks() {
+  const membres = ctx.beneficiaires.filter(b => b.type === 'membre');
+  const prestas = ctx.beneficiaires.filter(b => b.type === 'prestataire');
+
+  buildBenefBlock('ndfBenefBlock', 'NDF', membres, 'membre');
+  buildBenefBlock('dshBenefBlock', 'DSH', membres, 'membre');
+  buildBenefBlock('facBenefBlock', 'FAC', prestas, 'prestataire');
+}
+
+function buildBenefBlock(containerId, type, list, kind) {
+  const el = document.getElementById(containerId);
+  const label = kind === 'membre' ? 'Bénéficiaire' : 'Prestataire';
+  el.innerHTML = `
+    <label>${label}</label>
+    <select class="benef-select">
+      <option value="">— Nouveau ${label.toLowerCase()} —</option>
+      ${list.map(b => `<option value="${b.id}">${b.label}</option>`).join('')}
+    </select>
+    <p class="err hidden" style="margin-top:4px">Choisissez votre ${label.toLowerCase()} uniquement si ses informations bancaires n'ont pas changé.</p>
+    <div class="new-benef hidden">
+      <label>Prénom associé au RIB${kind === 'prestataire' ? ' (ou nom entreprise)' : ''}
+        <input class="nb-prenom" ${kind === 'prestataire' ? '' : ''}>
+      </label>
+      ${kind === 'membre' ? `
+      <label>Nom associé au RIB
+        <input class="nb-nom">
+      </label>
+      <label>Adresse mail
+        <input class="nb-email">
+      </label>
+      <label>Numéro de téléphone
+        <input class="nb-phone">
+      </label>
+      <label>Rôle dans l'AEn7
+        <input class="nb-role" value="Membre AEn7">
+      </label>` : `
+      <label>Nom associé au RIB
+        <input class="nb-nom">
+      </label>`}
+      <label>IBAN
+        <input class="nb-iban" placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX">
+      </label>
+      <div class="nb-iban-err err hidden"></div>
+    </div>
+  `;
+  const sel = el.querySelector('.benef-select');
+  const nb = el.querySelector('.new-benef');
+  sel.addEventListener('change', () => {
+    selectedBenef[type] = sel.value;
+    nb.classList.toggle('hidden', !!sel.value);
+  });
+  const ibanInput = el.querySelector('.nb-iban');
+  ibanInput.addEventListener('blur', () => {
+    if (ibanInput.value.trim()) ibanInput.value = formatIban(ibanInput.value);
+  });
+}
+
+// ---------- FICHIERS ----------
+const MAX_FILES = 10, MAX_SIZE = 10 * 1024 * 1024;
+
+function setupFileInput(inputId, listId, errId, type, allowedExt) {
+  document.getElementById(inputId).addEventListener('change', e => {
+    const errEl = document.getElementById(errId);
+    errEl.classList.add('hidden');
+    const chosen = Array.from(e.target.files);
+    const combined = files[type].concat(chosen);
+    if (combined.length > MAX_FILES) {
+      errEl.textContent = `Maximum ${MAX_FILES} fichiers.`;
+      errEl.classList.remove('hidden');
+      e.target.value = '';
+      return;
+    }
+    for (const f of chosen) {
+      if (f.size > MAX_SIZE) {
+        errEl.textContent = `Le fichier "${f.name}" dépasse 10 Mo.`;
+        errEl.classList.remove('hidden');
+        e.target.value = '';
+        return;
+      }
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (allowedExt && !allowedExt.includes(ext)) {
+        errEl.textContent = `Le fichier "${f.name}" n'est pas un format accepté.`;
+        errEl.classList.remove('hidden');
+        e.target.value = '';
+        return;
+      }
+    }
+    files[type] = combined;
+    renderFileList(listId, type);
+    e.target.value = '';
+  });
+}
+
+function renderFileList(listId, type) {
+  const el = document.getElementById(listId);
+  el.innerHTML = files[type].map((f, i) =>
+    `<div>${f.name} (${(f.size/1024/1024).toFixed(2)} Mo) <button type="button" data-i="${i}" data-t="${type}" class="row-del rm-file">✕</button></div>`
+  ).join('');
+  el.querySelectorAll('.rm-file').forEach(b => b.addEventListener('click', () => {
+    files[b.dataset.t].splice(+b.dataset.i, 1);
+    renderFileList(listId, type);
+  }));
+}
+
+setupFileInput('ndfFiles', 'ndfFilesList', 'ndfFileErr', 'NDF', ['jpg','jpeg','png','heic','pdf']);
+setupFileInput('dshFiles', 'dshFilesList', 'dshFileErr', 'DSH', ['jpg','jpeg','png','heic','pdf']);
+setupFileInput('facFiles', 'facFilesList', 'facFileErr', 'FAC', ['pdf']);
+
+// ---------- VALIDATION PAR ÉTAPE ----------
+function validateStep(type) {
+  let ok = true;
+
+  function checkBenef(containerId, kind) {
+    const el = document.getElementById(containerId);
+    const sel = el.querySelector('.benef-select').value;
+    if (sel) { newBenef[type] = null; return true; }
+    const prenom = el.querySelector('.nb-prenom').value.trim();
+    const nom = el.querySelector('.nb-nom').value.trim();
+    const ibanRaw = el.querySelector('.nb-iban').value.trim();
+    const ibanErr = el.querySelector('.nb-iban-err');
+    ibanErr.classList.add('hidden');
+    if (!nom || !ibanRaw || (kind === 'membre' && !prenom)) {
+      ibanErr.textContent = 'Merci de compléter les informations du bénéficiaire.';
+      ibanErr.classList.remove('hidden');
+      return false;
+    }
+    if (!ibanValid(ibanRaw)) {
+      ibanErr.textContent = "Cet IBAN ne semble pas valide, vérifiez qu'il est complet et sans erreur.";
+      ibanErr.classList.remove('hidden');
+      return false;
+    }
+    newBenef[type] = {
+      prenom, nom,
+      email: kind === 'membre' ? el.querySelector('.nb-email').value.trim() : '',
+      phone: kind === 'membre' ? el.querySelector('.nb-phone').value.trim() : '',
+      role: kind === 'membre' ? el.querySelector('.nb-role').value.trim() : '',
+      iban: cleanIban(ibanRaw),
+      type: kind
+    };
+    return true;
+  }
+
+  if (type === 'NDF') {
+    const rows = readTable('#ndfTable');
+    $('#ndfErr').classList.add('hidden');
+    if (rows.length === 0) {
+      $('#ndfErr').textContent = 'Ajoutez au moins un article.';
+      $('#ndfErr').classList.remove('hidden');
+      ok = false;
+    }
+    if (files.NDF.length === 0) {
+      $('#ndfFileErr').textContent = 'Ajoutez au moins un justificatif.';
+      $('#ndfFileErr').classList.remove('hidden');
+      ok = false;
+    }
+    if (!checkBenef('ndfBenefBlock', 'membre')) ok = false;
+  }
+
+  if (type === 'DSH') {
+    const reason = document.querySelector('[name=reason]').value.trim();
+    $('#reasonErr').classList.add('hidden');
+    if (!reason) {
+      $('#reasonErr').textContent = 'Merci de préciser la raison.';
+      $('#reasonErr').classList.remove('hidden');
+      ok = false;
+    }
+    const rows = readTable('#dshTable');
+    $('#dshTableErr').classList.add('hidden');
+    if (rows.length === 0) {
+      $('#dshTableErr').textContent = 'Ajoutez au moins un article.';
+      $('#dshTableErr').classList.remove('hidden');
+      ok = false;
+    }
+    if (files.DSH.length === 0) {
+      $('#dshFileErr').textContent = 'Ajoutez au moins un justificatif.';
+      $('#dshFileErr').classList.remove('hidden');
+      ok = false;
+    }
+    if (!checkBenef('dshBenefBlock', 'membre')) ok = false;
+  }
+
+  if (type === 'FAC') {
+    if (!checkBenef('facBenefBlock', 'prestataire')) ok = false;
+    if (files.FAC.length === 0) {
+      $('#facFileErr').textContent = 'Ajoutez la facture (PDF).';
+      $('#facFileErr').classList.remove('hidden');
+      ok = false;
+    }
+  }
+
+  return ok;
+}
+
+// ---------- RÉCAPITULATIF ----------
+function benefLabel(type) {
+  if (selectedBenef[type]) {
+    const b = ctx.beneficiaires.find(x => x.id === selectedBenef[type]);
+    return b ? b.label : selectedBenef[type];
+  }
+  if (newBenef[type]) {
+    return `${newBenef[type].prenom} ${newBenef[type].nom} (nouveau)`;
+  }
+  return '—';
+}
+
+function buildRecap() {
+  const desc = document.querySelector('[name=description]').value.trim();
+  let html = `<dt>Description</dt><dd>${desc}</dd><dt>Type</dt><dd>${chosenType}</dd>`;
+
+  if (chosenType === 'NDF') {
+    const rows = readTable('#ndfTable');
+    html += `<dt>Bénéficiaire</dt><dd>${benefLabel('NDF')}</dd>`;
+    html += `<dt>Détail des achats</dt><dd>${rows.map(r => `${r.nom} × ${r.qte} = ${fmtEUR(r.total)}`).join('<br>')}<br><b>Total : ${fmtEUR(rows.reduce((s,r)=>s+r.total,0))}</b></dd>`;
+    html += `<dt>Justificatifs</dt><dd>${files.NDF.map(f=>f.name).join(', ') || '—'}</dd>`;
+  }
+  if (chosenType === 'DSH') {
+    const rows = readTable('#dshTable');
+    html += `<dt>Raison</dt><dd>${document.querySelector('[name=reason]').value.trim()}</dd>`;
+    html += `<dt>Bénéficiaire</dt><dd>${benefLabel('DSH')}</dd>`;
+    html += `<dt>Détail des achats</dt><dd>${rows.map(r => `${r.nom} × ${r.qte} = ${fmtEUR(r.total)}`).join('<br>')}<br><b>Total : ${fmtEUR(rows.reduce((s,r)=>s+r.total,0))}</b></dd>`;
+    html += `<dt>Justificatifs</dt><dd>${files.DSH.map(f=>f.name).join(', ') || '—'}</dd>`;
+  }
+  if (chosenType === 'FAC') {
+    html += `<dt>Prestataire</dt><dd>${benefLabel('FAC')}</dd>`;
+    html += `<dt>Libellé</dt><dd>${document.querySelector('[name=label]').value.trim() || '—'}</dd>`;
+    html += `<dt>Facture</dt><dd>${files.FAC.map(f=>f.name).join(', ') || '—'}</dd>`;
+  }
+  $('#recapContent').innerHTML = html;
+}
+
+// ---------- ENVOI ----------
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve({
+      name: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      data: r.result.split(',')[1]
+    });
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+$('#f').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('#submitBtn').disabled = true;
+  $('#progressbar').classList.remove('hidden');
+  $('#progressbar-inner').style.width = '10%';
+  showMsg('Préparation des fichiers…');
+
+  try {
+    const fileList = files[chosenType];
+    const encoded = [];
+    for (let i = 0; i < fileList.length; i++) {
+      encoded.push(await fileToBase64(fileList[i]));
+      $('#progressbar-inner').style.width = (10 + 60 * (i + 1) / fileList.length) + '%';
     }
 
-    function credential(r) {
-      token = r.credential;
-      fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'context', idToken: token })
-      })
-        .then(x => x.json())
-        .then(x => {
-          if (!x.ok) throw 0;
-          $('#status').textContent = 'Connecté : ' + x.email + ' — clubs : ' + x.clubs.join(', ');
-          $('#benef').innerHTML =
-            '<option value="">Nouveau bénéficiaire</option>' +
-            x.beneficiaires
-              .map(b => `<option value="${b.id}">${b.label} — ${b.club}</option>`)
-              .join('');
-          $('#f').classList.remove('hidden');
-        })
-        .catch(() => msg('Accès refusé ou erreur de communication.', true));
+    const payload = {
+      description: document.querySelector('[name=description]').value.trim(),
+      type: chosenType,
+      beneficiaryId: selectedBenef[chosenType] || '',
+      newBeneficiary: newBenef[chosenType],
+      files: encoded
+    };
+
+    if (chosenType === 'NDF') {
+      payload.table = readTable('#ndfTable');
+    }
+    if (chosenType === 'DSH') {
+      payload.reason = document.querySelector('[name=reason]').value.trim();
+      payload.table = readTable('#dshTable');
+    }
+    if (chosenType === 'FAC') {
+      payload.label = document.querySelector('[name=label]').value.trim();
     }
 
-    window.onload = () => {
-      google.accounts.id.initialize({ client_id: CLIENT_ID, callback: credential });
-      google.accounts.id.renderButton($('#signin'), {
-        theme: 'outline',
-        size: 'large'
-      });
-    };
+    $('#progressbar-inner').style.width = '75%';
+    showMsg('Envoi de la demande…');
 
-    $('#f').onsubmit = e => {
-      e.preventDefault();
-      const fd = new FormData(e.target),
-        p = Object.fromEntries(fd.entries());
-      p.newBeneficiary = p.beneficiaryId
-        ? ''
-        : p.prenom
-        ? {
-            prenom: p.prenom,
-            nom: p.nom,
-            email: p.email,
-            phone: p.phone,
-            role: p.role,
-            iban: p.iban
-          }
-        : null;
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'submit', idToken: token, payload })
+    }).then(r => r.json());
 
-      fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'submit', idToken: token, payload: p })
-      })
-        .then(x => x.json())
-        .then(x =>
-          x.ok
-            ? msg('Demande enregistrée.')
-            : msg('Impossible d’enregistrer la demande.', true)
-        )
-        .catch(() => msg('Erreur de communication.', true));
-    };
-  </script>
+    $('#progressbar-inner').style.width = '100%';
+
+    if (res.ok) {
+      showMsg('Demande envoyée avec succès. Numéro : ' + res.id);
+      $('#f').classList.add('hidden');
+    } else {
+      throw new Error(res.error || 'Erreur inconnue');
+    }
+  } catch (err) {
+    showMsg("Erreur lors de l'envoi : " + err.message, true);
+  } finally {
+    $('#submitBtn').disabled = false;
+    setTimeout(() => $('#progressbar').classList.add('hidden'), 1000);
+  }
+});
+</script>
 </body>
 </html>
