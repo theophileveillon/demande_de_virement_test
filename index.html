@@ -1,43 +1,570 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Demande de virement</title><script src="https://accounts.google.com/gsi/client" async defer></script><style>body{font:16px system-ui;max-width:760px;margin:2rem auto;padding:0 1rem}label{display:block;margin:.7rem 0 .2rem;font-weight:600}input,select,textarea{width:100%;box-sizing:border-box;padding:.55rem;font:inherit}button{padding:.6rem 1rem;margin:.6rem .4rem .6rem 0}.hidden{display:none}.step{border:1px solid #ccd3dc;border-radius:8px;padding:1rem;margin-top:1rem}.err{color:#a00;min-height:1.2em}.mut{color:#555}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccd3dc;padding:.3rem}.grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:.3rem;align-items:end}.progress{background:#eee;padding:.5rem}.busy{opacity:.65;pointer-events:none}</style></head><body>
-<h1>Demande de virement</h1><p class="mut">⚠ Utilisez le mail de la trésorerie, sinon la connexion ne fonctionnera pas.</p><div id="signin"></div><p id="status" class="err"></p>
-<form id="form" class="hidden" novalidate><div class="progress" id="progress"></div>
-<section class="step" data-step="0"><h2>1. Justificatifs de paiement</h2><label for="desc">Description courte du virement</label><input id="desc" maxlength="300"><div id="e-desc" class="err"></div><fieldset><legend>Mon justificatif est :</legend><label><input type="radio" name="type" value="NDF"> Une note de frais (NDF)</label><label><input type="radio" name="type" value="DSH"> Une déclaration sur l'honneur (DSH)</label><label><input type="radio" name="type" value="FAC"> Une facture (FAC)</label></fieldset><div id="e-type" class="err"></div><button type="button" id="next0">Suivant</button></section>
-<section class="step hidden" data-step="1"><h2 id="kindTitle"></h2><p id="help" class="mut"></p><div id="reasonBox"><label for="reason">Raison de la non obtention du justificatif</label><textarea id="reason" maxlength="1000"></textarea><div id="e-reason" class="err"></div></div><div id="tableBox"><h3>Tableau</h3><p class="mut">Nom · quantité · prix unitaire aux centimes. Les montants négatifs sont acceptés si le total est positif.</p><div id="rows"></div><button type="button" id="addRow">Ajouter une ligne</button><p>Total : <strong id="total">0,00 €</strong></p><div id="e-table" class="err"></div></div>
-<div id="benefBox"><h3>Bénéficiaire</h3><label for="beneficiaryId">Bénéficiaire du club</label><select id="beneficiaryId"></select><button type="button" id="newBenefBtn">Ajouter un bénéficiaire</button><div id="newBenef" class="hidden"><label>Prénom associé au RIB<input id="new-first"></label><label>Nom associé au RIB<input id="new-last"></label><label>Adresse mail (si possible Gmail)<input id="new-email" type="email"></label><label>Numéro de téléphone<input id="new-tel"></label><label>Rôle dans l'AEn7<input id="new-role" value="Membre AEn7"></label><label>IBAN<input id="new-iban"></label><div id="e-benef" class="err"></div></div></div>
-<div id="invoiceBox"><label for="label">Libellé du virement (si demandé par le prestataire)</label><input id="label" maxlength="140"><label for="amount">Montant de la facture</label><input id="amount" type="number" min="0.01" step="0.01"><div id="e-amount" class="err"></div></div>
-<label for="files" id="fileLabel">Justificatifs</label><input id="files" type="file" multiple><p class="mut" id="fileHelp"></p><div id="fileList"></div><div id="e-files" class="err"></div><button type="button" id="back1">Précédent</button><button type="button" id="next1">Récapitulatif</button></section>
-<section class="step hidden" data-step="2"><h2>3. Récapitulatif</h2><div id="recap"></div><button type="button" id="back2">Modifier</button><button type="button" id="send">Envoyer le formulaire</button><p id="sending" class="mut"></p></section></form>
-<div id="done" class="hidden"><h2>Demande envoyée</h2><p id="doneText"></p><button id="again">Faire une autre demande</button></div><footer><a href="confidentialite.html">Politique de confidentialité</a></footer>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demande de virement – AEn7</title>
+<!-- Bibliothèque Google Sign-In (inchangée) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+/* ============ 1. THÈME : toutes les couleurs au même endroit ============ */
+/* --pri = violet de l'association ; --pri2 = violet foncé (texte sur fond clair, meilleur contraste) */
+:root{--pri:#A569BD;--pri2:#6C3483;--pri-lt:#F6F0F9;--bg:#fff;--card:#fff;--bd:#d9d9d9;--txt:#222;--mut:#666;--err:#b3261e;--ok:#1a7f4b}
+*{box-sizing:border-box;border-radius:0}   /* aucun arrondi nulle part */
+body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+.hidden{display:none!important}
+
+/* ============ 2. EN-TÊTE (logo + titre) ============ */
+.hero{text-align:center;padding:2rem 1rem 1.5rem;border-bottom:4px solid var(--pri)}
+.hero img{height:80px;max-width:80%;object-fit:contain;margin-bottom:.8rem}
+.hero h1{margin:0;font-size:1.8rem;font-weight:600}
+.hero p{max-width:640px;margin:.6rem auto 0;color:var(--mut)}
+main{max-width:760px;margin:1.5rem auto 2rem;padding:0 1rem}
+
+/* ============ 3. SECTIONS (une par section du docx) ============ */
+.card{background:var(--card);border:1px solid var(--bd);border-top:3px solid var(--pri);padding:1.2rem 1.4rem;margin-bottom:1.2rem}
+.card h2{margin:0 0 .4rem;font-size:1.25rem;font-weight:600}
+.card h3{margin:1.4rem 0 .3rem;font-size:1.02rem;font-weight:600}
+.tag{display:block;font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--pri2);margin-bottom:.2rem}
+.mut{color:var(--mut);font-size:.92rem;margin:.2rem 0 .6rem}
+.warn{border:1px solid var(--pri);background:var(--pri-lt);padding:.7rem .9rem;font-weight:600;margin:0 0 1rem}
+.note{background:var(--pri-lt);border-left:3px solid var(--pri);padding:.6rem .9rem;margin:.6rem 0}
+
+/* ============ 4. CHAMPS + MESSAGES D'ERREUR ============ */
+label.f{display:block;margin:1rem 0 .25rem;font-weight:600}
+input[type=text],input[type=email],input[type=tel],input[type=number],select,textarea{width:100%;padding:.55rem .65rem;border:1px solid #bbb;font:inherit;background:#fff;color:var(--txt)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--pri);outline-offset:0;border-color:var(--pri)}
+.bad{border-color:var(--err)!important}                 /* champ en erreur */
+.err{color:var(--err);font-size:.88rem;min-height:1.1em;margin:.25rem 0 0}   /* message sous le champ */
+fieldset{border:0;padding:0;margin:1rem 0 0}
+legend{font-weight:600;padding:0 0 .3rem}
+.choice{display:flex;gap:.7rem;align-items:center;border:1px solid var(--bd);padding:.65rem .9rem;margin:.4rem 0;cursor:pointer}
+.choice input{accent-color:var(--pri2)}
+.choice:has(input:checked){border-color:var(--pri);background:var(--pri-lt)}
+
+/* ============ 5. BOUTONS ============ */
+.btn{display:inline-block;border:1px solid var(--pri);padding:.55rem 1.1rem;font:inherit;font-weight:600;cursor:pointer;background:var(--pri);color:#fff}
+.btn.ghost{background:#fff;color:var(--pri2)}
+.btn:hover{background:var(--pri2);border-color:var(--pri2);color:#fff}
+.btn:disabled{opacity:.5;cursor:wait}
+.btn.big{width:100%;padding:.85rem;font-size:1.05rem}
+
+/* ============ 6. TABLEAU NDF / DSH ============ */
+.lt-head,.lt-row{display:grid;grid-template-columns:2fr 1fr 1.3fr 1fr 2.2rem;gap:.5rem;align-items:center}
+.lt-head{font-weight:600;font-size:.85rem;color:var(--mut)}
+.lt-row{margin:.4rem 0}
+.lt-row label span{display:none}
+.lt-row .line{text-align:right;font-weight:600}
+.x{border:1px solid var(--bd);background:#fff;color:var(--mut);height:2.2rem;font-size:1.1rem;cursor:pointer}
+.x:hover{border-color:var(--err);color:var(--err)}
+.total{text-align:right;font-size:1.1rem;margin:.8rem 0 0}
+.total .neg{color:var(--err)}
+@media(max-width:640px){                          /* mobile : une ligne = un bloc */
+ .lt-head{display:none}
+ .lt-row{grid-template-columns:1fr 1fr 2.2rem;padding:.6rem;border:1px solid var(--bd)}
+ .lt-row label:first-child{grid-column:1/-1}
+ .lt-row label span{display:block;font-size:.8rem;color:var(--mut)}
+}
+
+/* ============ 7. LISTE DES FICHIERS ============ */
+.files{list-style:none;padding:0;margin:.5rem 0 0}
+.files li{display:flex;gap:.6rem;align-items:center;border:1px solid var(--bd);padding:.3rem .3rem .3rem .7rem;margin:.3rem 0}
+.files li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li small{color:var(--mut)}
+.files .x{height:1.9rem;width:1.9rem}
+
+/* ============ 8. ANIMATION D'ENVOI (plein écran) ============ */
+#overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:99;padding:1rem}
+#overlay .box{background:#fff;border-top:4px solid var(--pri);padding:1.8rem;max-width:440px;width:100%}
+#overlay h2{margin:0 0 .5rem;font-size:1.2rem}
+.bar{height:12px;background:var(--pri-lt);border:1px solid var(--bd);margin:1rem 0 .6rem;overflow:hidden}
+/* barre de progression à rayures qui défilent : montre que ça travaille même pendant un long envoi */
+.bar i{display:block;height:100%;width:0;transition:width .4s;background:repeating-linear-gradient(45deg,var(--pri) 0 10px,var(--pri2) 10px 20px);background-size:28px 28px;animation:move 1s linear infinite}
+@keyframes move{to{background-position:28px 0}}
+.done{text-align:center}
+footer{text-align:center;padding:1rem;font-size:.9rem}
+footer a{color:var(--pri2)}
+</style>
+</head>
+<body>
+
+<!-- ================= EN-TÊTE ================= -->
+<header class="hero">
+  <!-- Logo : placer "logo_AE.png" (dossier Drive logo_bureau_club) à côté de index.html.
+       Si le fichier est absent, onerror supprime l'image sans casser la page. -->
+  <img src="logo_AE.png" alt="Logo de l'AEn7" onerror="this.remove()">
+  <h1>Demande de virement</h1>
+  <p>Ce formulaire permet de faire une demande de virement depuis le compte bancaire de l'AEn7 vers un tiers :
+     un membre de l'AEn7 (via une note de frais ou une déclaration sur l'honneur) ou un prestataire extérieur (via une facture).</p>
+</header>
+
+<main>
+
+<!-- ================= CONNEXION GOOGLE ================= -->
+<section class="card" id="login">
+  <p class="warn">/!\ Utilisez le mail de la trésorerie de votre bureau ou club, sinon la connexion ne fonctionnera pas. /!\</p>
+  <div id="signin"></div>              <!-- le bouton Google est injecté ici -->
+  <p id="status" class="err" role="alert"></p>
+</section>
+
+<!-- ================= FORMULAIRE (caché tant que non connecté) ================= -->
+<form id="form" class="hidden" novalidate autocomplete="off">
+  <p class="mut" id="who"></p>
+
+  <!-- ---------- SECTION 1 : toujours affichée ---------- -->
+  <section class="card" id="s1">
+    <span class="tag">Section 1</span>
+    <h2>Justificatifs de paiement</h2>
+
+    <label class="f" for="desc">Description courte du virement</label>
+    <input type="text" id="desc" maxlength="300" placeholder="Ex : Achat de matériel pour la soirée du 12 mars">
+    <p class="err" id="e-desc" role="alert"></p>
+
+    <fieldset id="typeBox">
+      <legend>Mon justificatif est :</legend>
+      <label class="choice"><input type="radio" name="type" value="NDF"> Une Note De Frais (NDF)</label>
+      <label class="choice"><input type="radio" name="type" value="DSH"> Une Déclaration Sur l'Honneur (DSH)</label>
+      <label class="choice"><input type="radio" name="type" value="FAC"> Une Facture (FAC)</label>
+    </fieldset>
+    <p class="err" id="e-type" role="alert"></p>
+  </section>
+
+  <!-- ---------- SECTION 2 : Note de frais ---------- -->
+  <section class="card hidden" id="s2">
+    <span class="tag">Section 2</span>
+    <h2>Note De Frais</h2>
+    <p class="note">Une NDF permet UNIQUEMENT de rembourser un membre de l'AEn7. Les tickets de carte, les screens de compte bancaire ou les « je te jure j'ai payé » ne permettent pas de créer une NDF.</p>
+    <h3>Tableau de la NDF</h3>
+    <p class="mut">Ne mettez que le nom de l'objet, la quantité et le prix unitaire.</p>
+    <div id="ndf-table"></div>
+    <h3>Justificatifs</h3>
+    <p class="mut">Ajoutez ici l'ensemble des justificatifs (images, HEIC, PDF, etc.).</p>
+    <div id="ndf-files"></div>
+  </section>
+
+  <!-- ---------- SECTION 3 : Déclaration sur l'honneur ---------- -->
+  <section class="card hidden" id="s3">
+    <span class="tag">Section 3</span>
+    <h2>Déclaration Sur l'Honneur</h2>
+    <p class="note">Attention : une DSH n'est valable que si AUCUN justificatif n'est obtenable par aucun moyen (site de seconde main, par exemple). Vous pouvez demander un ticket de caisse à une entreprise : elle est obligée de conserver une trace de votre paiement.</p>
+    <label class="f" for="reason">Raison de la non obtention du justificatif</label>
+    <textarea id="reason" rows="3" maxlength="1000"></textarea>
+    <p class="err" id="e-reason" role="alert"></p>
+    <h3>Tableau de la DSH</h3>
+    <p class="mut">Ne mettez que le nom de l'objet, la quantité et le prix unitaire.</p>
+    <div id="dsh-table"></div>
+    <h3>Justificatifs (facultatif)</h3>
+    <div id="dsh-files"></div>
+  </section>
+
+  <!-- ---------- SECTION 4 : Facture ---------- -->
+  <section class="card hidden" id="s4">
+    <span class="tag">Section 4</span>
+    <h2>Facture</h2>
+    <p class="note">Attention : un devis (même signé) n'est pas une facture. Tout prestataire a l'obligation de vous fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club pour garder une bonne trace de votre trésorerie.</p>
+    <h3>Prestataire</h3>
+    <p class="mut">Choisissez votre prestataire uniquement si ses informations bancaires n'ont pas changé.</p>
+    <div id="fac-benef"></div>
+
+    <label class="f" for="label">Libellé du virement (si demandé par le prestataire)</label>
+    <input type="text" id="label" maxlength="140">
+
+    <label class="f" for="amount">Montant de la facture (€)</label>
+    <input type="number" id="amount" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00">
+    <p class="err" id="e-amount" role="alert"></p>
+
+    <h3>Facture (PDF uniquement)</h3>
+    <div id="fac-files"></div>
+  </section>
+
+  <!-- ---------- SECTION 5 : Bénéficiaire (après NDF ou DSH) ---------- -->
+  <section class="card hidden" id="s5">
+    <span class="tag">Section 5</span>
+    <h2>Bénéficiaire</h2>
+    <p class="mut">Choisissez votre bénéficiaire uniquement si ses informations bancaires n'ont pas changé.</p>
+    <div id="mem-benef"></div>
+  </section>
+
+  <!-- ---------- BOUTON D'ENVOI ---------- -->
+  <div id="sendBar" class="hidden">
+    <p class="err" id="sendErr" role="alert"></p>
+    <button type="button" class="btn big" id="send">Envoyer le formulaire</button>
+  </div>
+</form>
+
+<!-- ================= ÉCRAN DE FIN ================= -->
+<section class="card done hidden" id="done">
+  <h2>Demande envoyée</h2>
+  <p id="doneText"></p>
+  <button type="button" class="btn" id="again">Faire une autre demande</button>
+</section>
+</main>
+
+<!-- ================= ANIMATION D'ENVOI ================= -->
+<div id="overlay" class="hidden" role="alertdialog" aria-live="assertive">
+  <div class="box">
+    <h2>Envoi en cours…</h2>
+    <p id="sendMsg"></p>
+    <div class="bar"><i id="barFill"></i></div>
+    <p class="mut">Cela peut prendre un moment. Merci de ne pas fermer cette page.</p>
+  </div>
+</div>
+
+<footer><a href="confidentialite.html">Politique de confidentialité</a></footer>
+
 <script>
-const API='https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec',CLIENT_ID='994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
+/* =====================================================================
+   A. CONFIGURATION ET OUTILS  (aucun changement de fonctionnement)
+   ===================================================================== */
+const API='https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec',
+      CLIENT_ID='994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
 const $=id=>document.getElementById(id);
+
+// Identifiant unique de la demande (sert à regrouper les fichiers et la ligne du sheet)
 function makeReqId(){try{if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID().replace(/-/g,'').slice(0,32)}catch(e){}return (Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)).slice(0,32)}
-let token='',ctx=null,type='',files=[],reqId=makeReqId(),step=0;
-async function call(payload){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({...payload,idToken:token})});const j=await r.json();if(!j.ok)throw Error(j.error||'Erreur serveur');return j}
-function msg(s){$('status').textContent=s||''}function show(n){step=n;document.querySelectorAll('.step').forEach(x=>x.classList.toggle('hidden',+x.dataset.step!==n));$('progress').textContent='Étape '+(n+1)+' / 3';if(n===2)renderRecap()}
-function credential(r){token=r.credential;call({action:'context'}).then(x=>{ctx=x;$('signin').classList.add('hidden');$('form').classList.remove('hidden');show(0)}).catch(e=>msg(e.message))}
+
+let token='',      // jeton Google (prouve l'identité auprès du serveur Apps Script)
+    ctx=null,      // contexte renvoyé par le serveur : listes de bénéficiaires/prestataires du club
+    type='',       // NDF, DSH ou FAC
+    reqId=makeReqId();
+
+// Appel au serveur Apps Script (même protocole qu'avant : POST text/plain + idToken)
+async function call(payload){
+  const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({...payload,idToken:token})});
+  const j=await r.json(); if(!j.ok)throw Error(j.error||'Erreur serveur'); return j;
+}
+
+// Montant en centimes -> "1 234,56 €"
+const eur=c=>(c/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+// Création d'un élément HTML depuis une chaîne
+const mk=h=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild};
+
+// Validation d'un IBAN (format + clé de contrôle modulo 97) – inchangée
+function iban(v){v=v.replace(/\s/g,'').toUpperCase();if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(v))return false;let d=(v.slice(4)+v.slice(0,4)).replace(/[A-Z]/g,c=>c.charCodeAt(0)-55),r=0;for(const c of d)r=(r*10+ +c)%97;return r===1}
+// Affiche l'IBAN avec un espace tous les 4 caractères (demandé dans le docx)
+const fmtIban=v=>v.replace(/\s/g,'').toUpperCase().replace(/(.{4})/g,'$1 ').trim();
+// IBAN masqué pour les menus déroulants : FR76…0189
+const maskIban=v=>{v=v.replace(/\s/g,'');return v.slice(0,4)+'…'+v.slice(-4)};
+// Plus de 2 décimales ? (prix « aux centimes »)
+const notCents=v=>Math.abs(v*100-Math.round(v*100))>1e-6;
+
+/* =====================================================================
+   B. MOTEUR DE VALIDATION
+   Chaque champ a une règle -> renvoie '' (OK) ou un message d'erreur
+   personnalisé affiché juste sous le champ.
+   - le test se lance quand on quitte le champ (blur)
+   - ensuite le message disparaît en direct dès que la réponse est corrigée
+   - au clic sur « Envoyer », tout est re-testé et on saute à la 1re erreur
+   ===================================================================== */
+const V=[];   // registre de toutes les règles : {sec, el, run}
+
+function rule(sec,el,errEl,test){
+  const run=()=>{const m=test();errEl.textContent=m;el.classList.toggle('bad',!!m);return m};
+  V.push({sec,el,run});
+  el.addEventListener('blur',run);
+  el.addEventListener('input',()=>{if(errEl.textContent)run()});
+  return run;
+}
+
+// Sections visibles = sections à valider
+const SEC={NDF:['s2','s5'],DSH:['s3','s5'],FAC:['s4']};
+const activeSecs=()=>type?['s1',...SEC[type]]:['s1'];
+
+function validateAll(){
+  const act=activeSecs();let first=null;
+  V.forEach(v=>{if(act.includes(v.sec)){const m=v.run();if(m&&!first)first=v}});
+  if(first){                                   // on amène l'utilisateur sur la 1re erreur
+    first.el.scrollIntoView({behavior:'smooth',block:'center'});
+    const f=first.el.matches('input,select,textarea')?first.el:first.el.querySelector('input,select,button');
+    if(f)f.focus({preventScroll:true});
+  }
+  return !first;
+}
+
+/* =====================================================================
+   C. COMPOSANT « TABLEAU » (NDF et DSH) – Nom ; Quantité ; Prix unitaire
+   Totaux par ligne et total général calculés en direct (en centimes
+   pour éviter les erreurs d'arrondi). Montants négatifs acceptés tant que
+   le total général reste positif.
+   ===================================================================== */
+function lineTable(root,sec){
+  root.innerHTML=`<div class="lt-head"><span>Nom</span><span>Quantité</span><span>Prix unitaire aux centimes</span><span style="text-align:right">Total</span><span></span></div>
+    <div class="rows"></div>
+    <button type="button" class="btn ghost add">+ Ajouter une ligne</button>
+    <p class="total">Total général : <strong>0,00 €</strong></p><p class="err" role="alert"></p>`;
+  const rows=root.querySelector('.rows'),tot=root.querySelector('strong'),err=root.querySelector('.err');
+
+  const read=r=>({nom:r.querySelector('.name').value.trim(),qte:r.querySelector('.qty').value,pu:r.querySelector('.price').value});
+  const filled=r=>r.nom||r.qte||r.pu;                       // ligne non vide ?
+  const cents=r=>Math.round((+r.qte||0)*(+r.pu||0)*100);    // total de ligne en centimes
+
+  function recalc(){                                        // met à jour l'affichage en direct
+    let t=0;
+    [...rows.children].forEach(el=>{const c=cents(read(el));el.querySelector('.line').textContent=eur(c);t+=c});
+    tot.textContent=eur(t);tot.classList.toggle('neg',t<0);return t;
+  }
+  function add(){                                           // ajoute une ligne vide
+    const d=mk(`<div class="lt-row">
+      <label><span>Nom</span><input type="text" class="name" maxlength="200" placeholder="Ex : Farine"></label>
+      <label><span>Quantité</span><input type="number" class="qty" step="any" inputmode="decimal" placeholder="1"></label>
+      <label><span>Prix unitaire (€)</span><input type="number" class="price" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+      <output class="line">0,00 €</output>
+      <button type="button" class="x" aria-label="Supprimer la ligne">×</button></div>`);
+    d.addEventListener('input',()=>{recalc();if(err.textContent)run()});
+    d.querySelector('.x').onclick=()=>{
+      if(rows.children.length>1)d.remove();                 // on garde toujours au moins une ligne
+      else d.querySelectorAll('input').forEach(i=>i.value='');
+      recalc();
+    };
+    rows.append(d);recalc();
+  }
+  // Données envoyées au serveur : mêmes clés qu'avant (nom, qte, pu)
+  const data=()=>[...rows.children].map(read).filter(filled);
+
+  function run(){
+    const all=[...rows.children].map(read),d=all.filter(filled),t=recalc();let m='';
+    const bad=all.findIndex(r=>filled(r)&&(!r.nom||!(+r.qte>0)||r.pu===''||isNaN(+r.pu)));
+    if(!d.length)m='Ajoutez au moins une ligne avec un nom, une quantité et un prix unitaire.';
+    else if(bad>=0)m=`La ligne ${bad+1} est incomplète : il faut un nom, une quantité positive et un prix unitaire.`;
+    else if(d.some(r=>notCents(+r.pu)))m='Les prix unitaires doivent être exprimés au centime près (2 décimales maximum).';
+    else if(t<=0)m='Le total général doit être strictement positif (une ligne négative, comme une réduction, est acceptée).';
+    err.textContent=m;root.classList.toggle('bad',!!m);return m;
+  }
+  root.querySelector('.add').onclick=add;
+  V.push({sec,el:root,run});
+  const reset=()=>{rows.innerHTML='';add();err.textContent=''};
+  add();
+  return {data,reset};
+}
+
+/* =====================================================================
+   D. COMPOSANT « DÉPÔT DE FICHIERS »
+   - pdf=true : un seul PDF (facture)
+   - need=true : au moins un fichier obligatoire
+   Chaque fichier peut être retiré avant l'envoi (bouton ×).
+   ===================================================================== */
+function fileDrop(root,sec,{pdf=false,need=true}={}){
+  let files=[],note='';
+  root.innerHTML=`<label class="btn ghost">${pdf?'Choisir le PDF de la facture':'Ajouter des fichiers'}
+      <input type="file" hidden ${pdf?'accept="application/pdf,.pdf"':'multiple'}></label>
+    <ul class="files"></ul><p class="err" role="alert"></p>`;
+  const input=root.querySelector('input'),ul=root.querySelector('ul'),err=root.querySelector('.err');
+
+  function draw(){                                          // réaffiche la liste (textContent = sûr)
+    ul.innerHTML='';
+    files.forEach((f,i)=>{
+      const li=mk('<li><span></span><small></small><button type="button" class="x" aria-label="Retirer ce fichier">×</button></li>');
+      li.querySelector('span').textContent=f.name;
+      li.querySelector('small').textContent=(f.size/1048576).toFixed(1)+' Mo';
+      li.querySelector('button').onclick=()=>{files.splice(i,1);note='';draw();if(err.textContent)run()};
+      ul.append(li);
+    });
+  }
+  input.onchange=e=>{
+    note='';
+    for(const f of e.target.files){
+      if(pdf){                                              // facture : PDF uniquement, un seul
+        if(!/\.pdf$/i.test(f.name)){note=`« ${f.name} » n'est pas un PDF : seule la facture au format PDF est acceptée.`;continue}
+        files=[f];
+      }else if(!files.some(x=>x.name===f.name&&x.size===f.size))files.push(f);  // évite les doublons
+    }
+    e.target.value='';draw();run();
+  };
+  function run(){
+    const m=note||(need&&!files.length?(pdf?'Ajoutez la facture au format PDF.':'Ajoutez au moins un justificatif (photo, PDF…).'):'');
+    err.textContent=m;root.classList.toggle('bad',!!m);return m;
+  }
+  V.push({sec,el:root,run});
+  return {files:()=>files,reset:()=>{files=[];note='';draw();err.textContent=''}};
+}
+
+/* =====================================================================
+   E. COMPOSANT « BÉNÉFICIAIRE / PRESTATAIRE »
+   Menu déroulant (liste du club uniquement, fournie par le serveur) +
+   bouton « Ajouter » qui fait apparaître les champs de création.
+   - membre (NDF/DSH) : prénom, nom, mail, téléphone, rôle, IBAN
+   - prestataire (FAC) : nom associé au RIB et IBAN uniquement
+   ===================================================================== */
+function benefPicker(root,sec,{pres}){
+  const kind=pres?'prestataire':'bénéficiaire';
+  let adding=false;                                         // false = menu déroulant, true = nouveau
+  root.innerHTML=`<label class="f">Choix du ${kind} :<select></select></label><p class="err sel-err" role="alert"></p>
+    <button type="button" class="btn ghost toggle"></button><div class="newb hidden"></div>`;
+  const sel=root.querySelector('select'),selErr=root.querySelector('.sel-err'),
+        tg=root.querySelector('.toggle'),box=root.querySelector('.newb'),fields={};
+
+  // Fabrique un champ de saisie + son message d'erreur + sa règle de validation
+  function field(key,label,{type='text',req='',val=null,def='',ph=''}={}){
+    const w=mk(`<div><label class="f">${label}<input type="${type}" value="${def}" placeholder="${ph}"></label><p class="err" role="alert"></p></div>`);
+    const el=w.querySelector('input');
+    if(key==='iban')el.addEventListener('input',()=>{el.value=fmtIban(el.value)});   // espace tous les 4 caractères
+    rule(sec,el,w.querySelector('.err'),()=>{
+      if(!adding)return '';                                 // champs ignorés si on utilise le menu
+      if(!el.value.trim())return req;
+      return val?val(el.value.trim()):'';
+    });
+    fields[key]=el;box.append(w);
+  }
+  const ibanTest=v=>iban(v)?'':`Cet IBAN semble invalide : vérifiez chaque chiffre (la clé de contrôle est incorrecte).`;
+  if(pres){
+    field('nom','Nom associé au RIB du prestataire',{req:`Indiquez le nom associé au RIB du prestataire.`});
+    field('iban','IBAN du prestataire',{req:`Indiquez l'IBAN du prestataire.`,val:ibanTest,ph:'FR76 ….'});
+  }else{
+    field('prenom','Prénom associé au RIB du bénéficiaire',{req:`Indiquez le prénom associé au RIB.`});
+    field('nom','Nom associé au RIB du bénéficiaire',{req:`Indiquez le nom associé au RIB.`});
+    field('mail','Adresse mail du bénéficiaire (si possible Gmail)',{type:'email',val:v=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)?'':`Cette adresse mail ne semble pas valide.`});
+    field('tel','Numéro de téléphone du bénéficiaire',{type:'tel',val:v=>/^\+?[\d .-]{9,20}$/.test(v)?'':`Ce numéro de téléphone ne semble pas valide.`});
+    field('role',`Rôle dans l'AEn7 du bénéficiaire`,{def:'Membre AEn7'});
+    field('iban','IBAN du bénéficiaire',{req:`Indiquez l'IBAN du bénéficiaire.`,val:ibanTest,ph:'FR76 ….'});
+  }
+  box.prepend(mk('<p class="warn">Remplissez avec une attention toute particulière cette partie, svp.</p>'));
+
+  // Règle du menu déroulant : un choix est obligatoire sauf si on ajoute un nouveau
+  rule(sec,sel,selErr,()=>adding||sel.value?'':`Choisissez un ${kind} dans la liste ou ajoutez-en un nouveau.`);
+
+  function setMode(on){                                     // bascule menu <-> nouveau
+    adding=on;box.classList.toggle('hidden',!on);sel.disabled=on;
+    tg.textContent=on?`Choisir un ${kind} existant`:`+ Ajouter un ${kind}`;
+    selErr.textContent='';sel.classList.remove('bad');
+    if(on)Object.values(fields)[0].focus();
+  }
+  tg.onclick=()=>setMode(!adding);
+
+  // (Re)remplit le menu avec la liste du club ; si vide, on ouvre directement la création
+  function refresh(list){
+    sel.innerHTML=`<option value="">— Choisir —</option>`;
+    list.forEach(b=>{const o=document.createElement('option');o.value=b.id;o.textContent=(b.first+' '+b.last).trim()+' ('+maskIban(b.iban)+')';sel.append(o)});
+    setMode(!list.length);
+  }
+  // Données envoyées au serveur (mêmes clés qu'avant)
+  function payload(){
+    if(!adding)return {beneficiaryId:sel.value,newBeneficiary:{}};
+    const g=k=>fields[k]?fields[k].value.trim():'';
+    // Prestataire : le docx ne demande que nom + IBAN, les autres champs partent vides.
+    return {beneficiaryId:'',newBeneficiary:{prenom:g('prenom'),nom:g('nom'),mail:g('mail'),tel:g('tel'),role:g('role'),iban:g('iban').replace(/\s/g,'').toUpperCase()}};
+  }
+  function reset(){Object.entries(fields).forEach(([k,e])=>e.value=k==='role'?'Membre AEn7':'');box.querySelectorAll('.err').forEach(e=>e.textContent='')}
+  return {refresh,payload,reset};
+}
+
+/* =====================================================================
+   F. CONSTRUCTION DU FORMULAIRE (dans l'ordre du document : sections 1 à 5)
+   ===================================================================== */
+// Section 1
+const runDesc=rule('s1',$('desc'),$('e-desc'),()=>$('desc').value.trim()?'':'Ajoutez une courte description du virement.');
+const runType=rule('s1',$('typeBox'),$('e-type'),()=>type?'':'Choisissez le type de votre justificatif.');
+// Section 2 (NDF)
+const tNDF=lineTable($('ndf-table'),'s2'), fNDF=fileDrop($('ndf-files'),'s2',{need:true});
+// Section 3 (DSH) : le justificatif est facultatif puisqu'il n'est par définition pas obtenable
+rule('s3',$('reason'),$('e-reason'),()=>$('reason').value.trim()?'':'Expliquez pourquoi aucun justificatif ne peut être obtenu.');
+const tDSH=lineTable($('dsh-table'),'s3'), fDSH=fileDrop($('dsh-files'),'s3',{need:false});
+// Section 4 (FAC)
+const bFac=benefPicker($('fac-benef'),'s4',{pres:true});
+rule('s4',$('amount'),$('e-amount'),()=>{
+  const v=$('amount').value;
+  if(!v)return 'Indiquez le montant de la facture.';
+  if(!(+v>0))return 'Le montant doit être strictement positif.';
+  return notCents(+v)?'Le montant doit être exprimé au centime près (2 décimales maximum).':'';
+});
+const fFAC=fileDrop($('fac-files'),'s4',{pdf:true,need:true});
+// Section 5 (bénéficiaire pour NDF/DSH)
+const bMem=benefPicker($('mem-benef'),'s5',{pres:false});
+
+// Choix du type : affiche la bonne section (2, 3 ou 4) et la section 5 si NDF/DSH
+const comp={NDF:{t:tNDF,f:fNDF,b:bMem},DSH:{t:tDSH,f:fDSH,b:bMem},FAC:{f:fFAC,b:bFac}};
+document.querySelectorAll('input[name=type]').forEach(r=>r.onchange=()=>{
+  type=r.value;runType();
+  ['s2','s3','s4','s5'].forEach(s=>$(s).classList.add('hidden'));
+  SEC[type].forEach(s=>$(s).classList.remove('hidden'));
+  $('sendBar').classList.remove('hidden');
+  $(SEC[type][0]).scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+// Remplit les menus avec les listes du club (le serveur ne renvoie que celles du club connecté)
+function refreshLists(){
+  bFac.refresh(ctx.prestataires||ctx.beneficiaries||[]);
+  bMem.refresh(ctx.beneficiaries||[]);
+}
+
+/* =====================================================================
+   G. CONNEXION GOOGLE (même fonctionnement qu'avant)
+   ===================================================================== */
+const status=(s,ok)=>{$('status').textContent=s||'';$('status').style.color=ok?'var(--mut)':''};
+const emailOf=t=>{try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).email||''}catch(e){return ''}};
+
+function credential(r){
+  token=r.credential;status('Vérification de votre adresse en cours…',true);
+  call({action:'context'}).then(x=>{
+    ctx=x;refreshLists();
+    $('login').classList.add('hidden');$('form').classList.remove('hidden');
+    $('who').textContent='Connecté en tant que '+emailOf(token);
+  }).catch(e=>status(e.message));                           // ex : mail non autorisé
+}
 window.addEventListener('load',()=>{
-  let tries=0;
+  let tries=0;                                              // on attend le chargement du script Google
   const init=()=>{
-    if(window.google&&google.accounts&&google.accounts.id){google.accounts.id.initialize({client_id:CLIENT_ID,callback:credential});google.accounts.id.renderButton($('signin'),{theme:'outline',size:'large'});return}
+    if(window.google&&google.accounts&&google.accounts.id){
+      google.accounts.id.initialize({client_id:CLIENT_ID,callback:credential});
+      google.accounts.id.renderButton($('signin'),{theme:'outline',size:'large'});return;
+    }
     if(++tries<20)return setTimeout(init,250);
-    msg('Impossible de charger la connexion Google.');
+    status('Impossible de charger la connexion Google.');
   };
   init();
 });
-function addRow(){const d=document.createElement('div');d.className='grid row';d.innerHTML='<input class="name" maxlength="200" placeholder="Nom"><input class="qty" type="number" step="any" placeholder="Qté"><input class="price" type="number" step="0.01" placeholder="PU"><output class="line">0,00 €</output><button type="button" class="remove">×</button>';d.oninput=calc;d.querySelector('.remove').onclick=()=>{d.remove();calc()};$('rows').append(d);calc()}
-function calc(){let t=0;document.querySelectorAll('.row').forEach(r=>{const v=(+r.querySelector('.qty').value||0)*(+r.querySelector('.price').value||0);r.querySelector('.line').textContent=v.toFixed(2).replace('.',',')+' €';t+=v});$('total').textContent=t.toFixed(2).replace('.',',')+' €';return t}
-function iban(v){v=v.replace(/\s/g,'').toUpperCase();if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(v))return false;let d=(v.slice(4)+v.slice(0,4)).replace(/[A-Z]/g,c=>c.charCodeAt(0)-55),r=0;for(const c of d)r=(r*10+ +c)%97;return r===1}
-function buildBenef(){const list=type==='FAC'?(ctx.prestataires||ctx.beneficiaries||[]):(ctx.beneficiaries||[]),sel=$('beneficiaryId');sel.innerHTML='<option value="">— Ajouter —</option>';list.forEach(b=>{const o=document.createElement('option');o.value=b.id;o.textContent=(b.first+' '+b.last).trim()+' ('+b.iban+')';sel.append(o)});$('benefBox').classList.toggle('hidden',false);$('newBenef').classList.add('hidden')}
-function tableData(){return [...document.querySelectorAll('.row')].map(r=>({nom:r.querySelector('.name').value.trim(),qte:r.querySelector('.qty').value,pu:r.querySelector('.price').value})).filter(r=>r.nom||r.qte||r.pu)}
-$('addRow').onclick=addRow;$('newBenefBtn').onclick=()=>$('newBenef').classList.toggle('hidden');$('files').onchange=e=>{files.push(...e.target.files);e.target.value='';$('fileList').textContent=files.map(f=>f.name).join(', ')};
-$('next0').onclick=()=>{let r=document.querySelector('input[name=type]:checked');$('e-type').textContent=r?'':'Choisissez un type.';$('e-desc').textContent=$('desc').value.trim()?'':'Description obligatoire.';if(!r||!$('desc').value.trim())return;type=r.value;$('kindTitle').textContent=type==='NDF'?'2. Note de frais':type==='DSH'?'2. Déclaration sur l’honneur':'2. Facture';$('help').textContent=type==='NDF'?'Une NDF rembourse uniquement un membre de l’AEn7.':type==='DSH'?'Une DSH est réservée aux cas où aucun justificatif n’est obtenable.':'Un devis n’est pas une facture. Seuls les PDF sont acceptés.';$('reasonBox').classList.toggle('hidden',type!=='DSH');$('tableBox').classList.toggle('hidden',type==='FAC');$('invoiceBox').classList.toggle('hidden',type!=='FAC');$('fileLabel').textContent=type==='FAC'?'Facture PDF':'Ensemble des justificatifs';$('fileHelp').textContent=type==='FAC'?'Un seul PDF.':'Images, HEIC, PDF ou autres justificatifs acceptés.';buildBenef();$('rows').innerHTML='';if(type!=='FAC')addRow();show(1)};
-$('back1').onclick=()=>show(0);$('back2').onclick=()=>show(1);
-function benefPayload(){if($('beneficiaryId').value)return{beneficiaryId:$('beneficiaryId').value};return{newBeneficiary:{prenom:$('new-first').value.trim(),nom:$('new-last').value.trim(),mail:$('new-email').value.trim(),tel:$('new-tel').value.trim(),role:$('new-role').value.trim(),iban:$('new-iban').value.replace(/\s/g,'').toUpperCase()}}}
-function validate(){let ok=true;$('e-files').textContent='';if((type==='NDF'&&!files.length)||(type==='FAC'&&files.length!==1)||(type==='FAC'&&files[0]&&!/\.pdf$/i.test(files[0].name))){$('e-files').textContent=type==='FAC'?'Ajoutez exactement un PDF.':'Ajoutez au moins un justificatif.';ok=false}if(type!=='FAC'&&(!tableData().length||calc()<=0)){$('e-table').textContent='Tableau invalide : total strictement positif requis.';ok=false}else $('e-table').textContent='';if(type==='DSH'&&!$('reason').value.trim()){$('e-reason').textContent='Raison obligatoire.';ok=false}else $('e-reason').textContent='';if(type==='FAC'&&(!+$('amount').value||+$('amount').value<=0)){$('e-amount').textContent='Montant obligatoire et positif.';ok=false}else $('e-amount').textContent='';const b=benefPayload().newBeneficiary;if(!$('beneficiaryId').value&&(!b.prenom||!b.nom||!iban(b.iban))){$('e-benef').textContent='Prénom, nom et IBAN valide obligatoires.';ok=false}else $('e-benef').textContent='';return ok}
-function renderRecap(){const rows=tableData();$('recap').innerHTML='<p><b>Type :</b> '+type+'<br><b>Description :</b> '+$('desc').value+'</p>'+(type!=='FAC'?'<p><b>Lignes :</b><br>'+rows.map(r=>`${r.nom} — ${r.qte} × ${r.pu} €`).join('<br>')+'<br><b>Total :</b> '+$('total').textContent+'</p>':'<p><b>Montant :</b> '+$('amount').value+' €<br><b>Libellé :</b> '+$('label').value+'</p>')+'<p><b>Fichiers :</b> '+files.map(f=>f.name).join(', ')+'</p>'}
-$('next1').onclick=()=>{if(validate())show(2)};
+
+/* =====================================================================
+   H. ENVOI : fichiers un par un, puis la demande (protocole inchangé)
+   ===================================================================== */
 const b64=f=>new Promise((ok,no)=>{const r=new FileReader;r.onload=()=>ok(r.result.split(',')[1]);r.onerror=no;r.readAsDataURL(f)});
-$('send').onclick=async()=>{if(!validate())return;const btn=$('send');btn.disabled=true;$('sending').textContent='Envoi en cours, veuillez patienter…';try{const ids=[];for(let i=0;i<files.length;i++){const f=files[i];$('sending').textContent=`Envoi du fichier ${i+1}/${files.length}…`;ids.push((await call({action:'upload',type,reqId,name:f.name,data:await b64(f)})).fileId)}const b=benefPayload(),p={action:'submit',reqId,type,description:$('desc').value.trim(),reason:$('reason').value.trim(),table:tableData(),fileIds:ids,beneficiaryId:b.beneficiaryId||'',newBeneficiary:b.newBeneficiary||{},amount:$('amount').value,label:$('label').value.trim()};const out=await call(p);$('form').classList.add('hidden');$('done').classList.remove('hidden');$('doneText').textContent='Votre demande '+out.id+' a été enregistrée.'}catch(e){msg(e.message);btn.disabled=false;$('sending').textContent=''}};$('again').onclick=()=>location.reload();
-</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-</body></html>
+
+$('send').onclick=async()=>{
+  if(!validateAll())return;                                 // s'arrête à la 1re erreur
+  const c=comp[type],list=c.f.files(),btn=$('send'),steps=list.length+1;
+  btn.disabled=true;$('sendErr').textContent='';
+  $('overlay').classList.remove('hidden');                  // animation plein écran
+  const progress=(n,txt)=>{$('barFill').style.width=Math.round(n/steps*100)+'%';$('sendMsg').textContent=txt};
+  try{
+    const ids=[];
+    for(let i=0;i<list.length;i++){                         // 1) envoi des fichiers
+      progress(i,`Envoi du fichier ${i+1}/${list.length} : ${list[i].name}`);
+      ids.push((await call({action:'upload',type,reqId,name:list[i].name,data:await b64(list[i])})).fileId);
+    }
+    progress(list.length,'Enregistrement de la demande…');  // 2) envoi de la demande
+    const b=c.b.payload();
+    const out=await call({action:'submit',reqId,type,
+      description:$('desc').value.trim(),
+      reason:type==='DSH'?$('reason').value.trim():'',
+      table:type==='FAC'?[]:c.t.data(),
+      fileIds:ids,beneficiaryId:b.beneficiaryId,newBeneficiary:b.newBeneficiary,
+      amount:type==='FAC'?$('amount').value:'',
+      label:type==='FAC'?$('label').value.trim():''});
+    progress(steps,'Terminé !');
+    $('overlay').classList.add('hidden');$('form').classList.add('hidden');$('done').classList.remove('hidden');
+    $('doneText').textContent='Votre demande '+out.id+' a été enregistrée.';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){                                                // en cas d'erreur : on rend la main
+    $('overlay').classList.add('hidden');btn.disabled=false;
+    $('sendErr').textContent=`L'envoi a échoué : ${e.message}. Vos réponses sont conservées, vous pouvez réessayer.`;
+  }
+};
+
+/* =====================================================================
+   I. « FAIRE UNE AUTRE DEMANDE » : retour au début sans se reconnecter
+   (si le jeton Google a expiré, on recharge la page = nouvelle connexion)
+   ===================================================================== */
+$('again').onclick=async()=>{
+  try{ctx=await call({action:'context'})}catch(e){location.reload();return}   // listes à jour (nouveau bénéficiaire inclus)
+  reqId=makeReqId();type='';                                // nouvelle demande = nouvel identifiant
+  $('form').reset();
+  [tNDF,tDSH,fNDF,fDSH,fFAC,bMem,bFac].forEach(x=>x.reset());
+  document.querySelectorAll('.err').forEach(e=>e.textContent='');
+  document.querySelectorAll('.bad').forEach(e=>e.classList.remove('bad'));
+  ['s2','s3','s4','s5','sendBar'].forEach(s=>$(s).classList.add('hidden'));
+  refreshLists();$('send').disabled=false;
+  $('done').classList.add('hidden');$('form').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+</script>
+</body>
+</html>
