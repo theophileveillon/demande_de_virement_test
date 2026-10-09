@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Demande de virement – AEn7</title>
-<!-- Bibliothèque Google Sign-In (inchangée) -->
+<!-- Bibliothèque Google Sign-In -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-/* ============ 1. THÈME : toutes les couleurs au même endroit ============ */
+/* ============ 1. THÈME : les couleurs ============ */
 /* --pri = violet de l'association ; --pri2 = violet foncé (texte sur fond clair, meilleur contraste) */
 :root{--pri:#A569BD;--pri2:#6C3483;--pri-lt:#F6F0F9;--bg:#fff;--card:#fff;--bd:#d9d9d9;--txt:#222;--mut:#666;--err:#b3261e;--ok:#1a7f4b}
 *{box-sizing:border-box;border-radius:0}   /* aucun arrondi nulle part */
@@ -21,7 +21,7 @@ body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.55 system-ui,-ap
 .hero p{max-width:640px;margin:.6rem auto 0;color:var(--mut)}
 main{max-width:760px;margin:1.5rem auto 2rem;padding:0 1rem}
 
-/* ============ 3. SECTIONS (une par section du docx) ============ */
+/* ============ 3. SECTIONS ============ */
 .card{background:var(--card);border:1px solid var(--bd);border-top:3px solid var(--pri);padding:1.2rem 1.4rem;margin-bottom:1.2rem}
 .card h2{margin:0 0 .4rem;font-size:1.25rem;font-weight:600}
 .card h3{margin:1.4rem 0 .3rem;font-size:1.02rem;font-weight:600}
@@ -73,7 +73,7 @@ legend{font-weight:600;padding:0 0 .3rem}
 .files li small{color:var(--mut)}
 .files .x{height:1.9rem;width:1.9rem}
 
-/* ============ 8. ANIMATION D'ENVOI (plein écran) ============ */
+/* ============ 8. ANIMATION D'ENVOI ============ */
 #overlay{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:99;padding:1rem}
 #overlay .box{background:#fff;border-top:4px solid var(--pri);padding:1.8rem;max-width:440px;width:100%}
 #overlay h2{margin:0 0 .5rem;font-size:1.2rem}
@@ -90,8 +90,6 @@ footer a{color:var(--pri2)}
 
 <!-- ================= EN-TÊTE ================= -->
 <header class="hero">
-  <!-- Logo : placer "logo_AE.png" (dossier Drive logo_bureau_club) à côté de index.html.
-       Si le fichier est absent, onerror supprime l'image sans casser la page. -->
   <img src="logo_AE.png" alt="Logo de l'AEn7" onerror="this.remove()">
   <h1>Demande de virement</h1>
   <p>Ce formulaire permet de faire une demande de virement depuis le compte bancaire de l'AEn7 vers un tiers :
@@ -215,7 +213,7 @@ footer a{color:var(--pri2)}
 
 <script>
 /* =====================================================================
-   A. CONFIGURATION ET OUTILS  (aucun changement de fonctionnement)
+   A. CONFIGURATION ET OUTILS
    ===================================================================== */
 const API='https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec',
       CLIENT_ID='994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
@@ -234,7 +232,7 @@ let token='',      // jeton Google (prouve l'identité auprès du serveur Apps S
     type='',       // NDF, DSH ou FAC
     reqId=makeReqId();
 
-// Appel au serveur Apps Script (même protocole qu'avant : POST text/plain + idToken)
+// Appel au serveur Apps Script (POST text/plain + idToken)
 async function call(payload){
   const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({...payload,idToken:token})});
   const j=await r.json(); if(!j.ok)throw Error(j.error||'Erreur serveur'); return j;
@@ -245,9 +243,9 @@ const eur=c=>(c/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
 // Création d'un élément HTML depuis une chaîne
 const mk=h=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild};
 
-// Validation d'un IBAN (format + clé de contrôle modulo 97) – inchangée
+// Validation d'un IBAN (format + clé de contrôle modulo 97)
 function iban(v){v=v.replace(/\s/g,'').toUpperCase();if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(v))return false;let d=(v.slice(4)+v.slice(0,4)).replace(/[A-Z]/g,c=>c.charCodeAt(0)-55),r=0;for(const c of d)r=(r*10+ +c)%97;return r===1}
-// Affiche l'IBAN avec un espace tous les 4 caractères (demandé dans le docx)
+// Affiche l'IBAN avec un espace tous les 4 caractères
 const fmtIban=v=>v.replace(/\s/g,'').toUpperCase().replace(/(.{4})/g,'$1 ').trim();
 // IBAN masqué pour les menus déroulants : FR76…0189
 const maskIban=v=>{v=v.replace(/\s/g,'');return v.slice(0,4)+'…'+v.slice(-4)};
@@ -452,7 +450,7 @@ function benefPicker(root,sec,{pres}){
   function payload(){
     if(!adding)return {beneficiaryId:sel.value,newBeneficiary:{}};
     const g=k=>fields[k]?fields[k].value.trim():'';
-    // Prestataire : le docx ne demande que nom + IBAN, les autres champs partent vides.
+    // Prestataire : ne demande que nom + IBAN, les autres champs partent vides.
     return {beneficiaryId:'',newBeneficiary:{prenom:g('prenom'),nom:g('nom'),mail:g('mail'),tel:g('tel'),role:g('role'),iban:g('iban').replace(/\s/g,'').toUpperCase()}};
   }
   function reset(){Object.entries(fields).forEach(([k,e])=>e.value=k==='role'?'Membre AEn7':'');box.querySelectorAll('.err').forEach(e=>e.textContent='')}
@@ -499,7 +497,7 @@ function refreshLists(){
 }
 
 /* =====================================================================
-   G. CONNEXION GOOGLE (même fonctionnement qu'avant)
+   G. CONNEXION GOOGLE
    ===================================================================== */
 const status=(s,ok)=>{$('status').textContent=s||'';$('status').style.color=ok?'var(--mut)':''};
 const emailOf=t=>{try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).email||''}catch(e){return ''}};
@@ -526,7 +524,7 @@ window.addEventListener('load',()=>{
 });
 
 /* =====================================================================
-   H. ENVOI : fichiers un par un, puis la demande (protocole inchangé)
+   H. ENVOI : fichiers un par un, puis la demande
    ===================================================================== */
 const b64=f=>new Promise((ok,no)=>{const r=new FileReader;r.onload=()=>ok(r.result.split(',')[1]);r.onerror=no;r.readAsDataURL(f)});
 
