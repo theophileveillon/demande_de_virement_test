@@ -138,7 +138,7 @@ footer a{color:var(--pri2)}
     <p class="mut">Ne mettez que le nom de l'objet, la quantité et le prix unitaire.</p>
     <div id="ndf-table"></div>
     <h3>Justificatifs</h3>
-    <p class="mut">Ajoutez ici l'ensemble des justificatifs (images, HEIC, PDF, etc.).</p>
+    <p class="mut">Ajoutez ici l'ensemble des justificatifs (images dont HEIC, PDF, Word, Excel, texte) : 10 fichiers maximum, 10 Mo chacun.</p>
     <div id="ndf-files"></div>
   </section>
 
@@ -154,6 +154,7 @@ footer a{color:var(--pri2)}
     <p class="mut">Ne mettez que le nom de l'objet, la quantité et le prix unitaire.</p>
     <div id="dsh-table"></div>
     <h3>Justificatifs (facultatif)</h3>
+    <p class="mut">Images dont HEIC, PDF, Word, Excel, texte : 10 fichiers maximum, 10 Mo chacun.</p>
     <div id="dsh-files"></div>
   </section>
 
@@ -173,7 +174,7 @@ footer a{color:var(--pri2)}
     <input type="number" id="amount" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00">
     <p class="err" id="e-amount" role="alert"></p>
 
-    <h3>Facture (PDF uniquement)</h3>
+    <h3>Facture (PDF uniquement, 10 Mo maximum)</h3>
     <div id="fac-files"></div>
   </section>
 
@@ -219,6 +220,11 @@ footer a{color:var(--pri2)}
 const API='https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec',
       CLIENT_ID='994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
 const $=id=>document.getElementById(id);
+
+// Limites des pièces : mêmes valeurs que le serveur (Code.gs), pour prévenir AVANT l'envoi et non en plein envoi
+const MAX_FILES=10, MAX_BYTES=10*1024*1024,
+      EXT_OK=['jpg','jpeg','png','gif','webp','heic','heif','bmp','tif','tiff','avif','pdf','doc','docx','xls','xlsx','odt','ods','csv','txt','rtf'];
+const extOf=n=>(n.match(/\.([A-Za-z0-9]+)$/)||['',''])[1].toLowerCase();
 
 // Identifiant unique de la demande (sert à regrouper les fichiers et la ligne du sheet)
 function makeReqId(){try{if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID().replace(/-/g,'').slice(0,32)}catch(e){}return (Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)).slice(0,32)}
@@ -361,13 +367,19 @@ function fileDrop(root,sec,{pdf=false,need=true}={}){
     });
   }
   input.onchange=e=>{
-    note='';
+    const notes=[],skipped=[];                              // plusieurs fichiers peuvent être refusés d'un coup
     for(const f of e.target.files){
-      if(pdf){                                              // facture : PDF uniquement, un seul
-        if(!/\.pdf$/i.test(f.name)){note=`« ${f.name} » n'est pas un PDF : seule la facture au format PDF est acceptée.`;continue}
-        files=[f];
-      }else if(!files.some(x=>x.name===f.name&&x.size===f.size))files.push(f);  // évite les doublons
+      if(pdf&&!/\.pdf$/i.test(f.name)){notes.push(`« ${f.name} » n'est pas un PDF : seule la facture au format PDF est acceptée.`);continue}
+      if(!pdf&&!EXT_OK.includes(extOf(f.name))){notes.push(`« ${f.name} » : ce format n'est pas accepté (images dont HEIC, PDF, Word, Excel ou texte).`);continue}
+      if(!f.size){notes.push(`« ${f.name} » est vide.`);continue}
+      if(f.size>MAX_BYTES){notes.push(`« ${f.name} » dépasse ${MAX_BYTES/1048576} Mo.`);continue}
+      if(pdf){files=[f];continue}                           // facture : un seul PDF
+      if(files.some(x=>x.name===f.name&&x.size===f.size))continue;               // évite les doublons
+      if(files.length>=MAX_FILES){skipped.push(`« ${f.name} »`);continue}
+      files.push(f);
     }
+    if(skipped.length)notes.push(`${MAX_FILES} fichiers maximum, non ajouté${skipped.length>1?'s':''} : ${skipped.join(', ')}.`);
+    note=notes.join(' ');
     e.target.value='';draw();run();
   };
   function run(){
