@@ -402,7 +402,41 @@
       color: var(--pri2)
     }
 
-    textarea { resize: none; overflow: hidden; }
+    textarea {
+      resize: none;
+      overflow: hidden;
+    }
+
+    /* Panneau qui se plie/déplie en douceur (sans connaître sa hauteur) */
+    .slide {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows .3s ease, opacity .3s ease
+    }
+
+    .slide.closed {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      pointer-events: none
+    }
+
+    .slide>div {
+      min-height: 0;
+      overflow: hidden;
+      padding: 3px;
+      margin: -3px
+    }
+
+    /* 3px = place pour l'outline de focus */
+    .toggle {
+      margin-top: .4rem
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide {
+        transition: none
+      }
+    }
   </style>
 </head>
 
@@ -473,7 +507,7 @@
           fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club
           pour garder une bonne trace de votre trésorerie.</p>
 
-        <div id = "libelleFac"></div>
+        <div id="libelleFac"></div>
 
         <div id="montantFac"></div>
 
@@ -483,16 +517,11 @@
 
       <!-- ---------- SECTION 5 : Bénéficiaire (après NDF ou DSH) ---------- -->
       <section class="card hidden" id="s5">
-        <span class="tag">Section 5</span>
-        <h2>Bénéficiaire</h2>
-        <p class="mut">Choisissez votre bénéficiaire uniquement si ses informations bancaires n'ont pas changé.</p>
         <div id="mem-benef"></div>
       </section>
 
       <!-- ---------- SECTION 6 : Préstataire (après FAC) ---------- -->
       <section class="card hidden" id="s6">
-        <h2>Préstataire</h2>
-        <p class="mut">Choisissez votre préstataire uniquement si ses informations bancaires n'ont pas changé.</p>
         <div id="mem-prest"></div>
       </section>
 
@@ -524,11 +553,11 @@
   <footer><a href="confidentialite.html">Politique de confidentialité</a></footer>
 
   <script>
-/*=====================================================================
-    Connexion serveur
-  ===================================================================== */
+    /*=====================================================================
+        Connexion serveur
+      ===================================================================== */
     const API = 'https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec',
-          CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
+      CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
 
     // Identifiant unique de la demande (sert à regrouper les fichiers et la ligne du sheet)
     function makeReqId() { try { if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID().replace(/-/g, '').slice(0, 32) } catch (e) { } return (Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 32) }
@@ -568,11 +597,11 @@
       init();
     });
 
-/*=====================================================================
-    Configuration
-  ===================================================================== */
+    /*=====================================================================
+        Configuration
+      ===================================================================== */
     let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024,
-        EXT_OK = ['jpg','jpeg','png','gif','webp','heic','heif','bmp','tif','tiff','avif','pdf','doc','docx','xls','xlsx','odt','ods','csv','txt','rtf'];
+      EXT_OK = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp', 'tif', 'tiff', 'avif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'odt', 'ods', 'csv', 'txt', 'rtf'];
     let benefList = [], prestList = [];
 
     function applyContext(c) {
@@ -583,9 +612,9 @@
       prestList = c.prest || [];
     }
 
-/*=====================================================================
-    Outils
-  ===================================================================== */
+    /*=====================================================================
+        Outils
+      ===================================================================== */
     // juste un raccourci
     const $ = id => document.getElementById(id);
 
@@ -696,7 +725,7 @@
       grow();
       return { run, value, reset };
     }
-    
+
     // Dépôt de fichier
     function fileDrop(root, { pdf = false, need = true } = {}) {
       let files = [], note = '';
@@ -744,8 +773,8 @@
         <input type="text" id="${id}" inputmode="decimal" autocomplete="off" aria-describedby="e-${id}">
         <p class="err" id="e-${id}" role="alert"></p>`;
       const lab = root.querySelector('label'),
-            input = root.querySelector('input'),
-            err = root.querySelector('.err');
+        input = root.querySelector('input'),
+        err = root.querySelector('.err');
 
       lab.textContent = label;
       input.placeholder = placeholder;
@@ -787,19 +816,173 @@
       $(s).querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
       // Reste Parties dynamiques (tableaux, fichiers)
     }
-/*=====================================================================
-    Outils Bénéficiarie/Préstataire
-  ===================================================================== */
+    /*=====================================================================
+        Outils Bénéficiarie/Préstataire
+      ===================================================================== */
 
-    // Remplit les menus avec les listes du club (le serveur ne renvoie que celles du club connecté)
-    function refreshLists() {
-      bFac.refresh(ctx.prestataires || ctx.beneficiaries || []);
-      bMem.refresh(ctx.beneficiaries || []);
+    // Un espace tous les 4 caractères (même règle que ibanFmt_ côté serveur)
+    const fmtIban = s => s.replace(/\s/g, '').toUpperCase().slice(0, 34).replace(/(.{4})(?=.)/g, '$1 ');
+
+    // Clé de contrôle IBAN (modulo 97), copie de validIban_ côté serveur
+    function validIban(v) {
+      const s = v.replace(/\s/g, '').toUpperCase();
+      if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+      const digits = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, c => String(c.charCodeAt(0) - 55));
+      let rem = 0;
+      for (const d of digits) rem = (rem * 10 + +d) % 97;
+      return rem === 1;
     }
 
-/*=====================================================================
-    Formulaire
-  ===================================================================== */
+    let _bp = 0;   // compteur pour des id uniques si le composant est utilisé plusieurs fois
+
+    /**
+     * beneprest('mem-benef', 'Bénéficiaire')  ou  beneprest('mem-prest', 'Prestataire')
+     * Retourne { refresh(liste), run(), payload(), reset() }
+     */
+    function beneprest(rootOrId, libelle) {
+      const root = typeof rootOrId === 'string' ? $(rootOrId) : rootOrId;
+      const pres = /^prest/i.test(libelle.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));  // tolère « Préstataire »
+      const kind = libelle.toLowerCase();
+      const uid = 'bp' + (++_bp), T = 300;                       // T = durée de l'animation (ms), idem CSS
+      const MAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/, TEL_RE = /^\+?[\d .-]{9,20}$/;
+      let adding = false, list = [], timer = 0;
+
+      // ---------- Squelette ----------
+      root.innerHTML = `
+        <h2></h2>
+        <p class="mut">Choisissez votre ${kind} uniquement si ses informations bancaires n'ont pas changé.</p>
+        <div class="slide pick"><div>
+          <label class="f" for="${uid}-sel">Choix du ${kind} :</label>
+          <select id="${uid}-sel" aria-describedby="${uid}-sel-err"></select>
+          <p class="err" id="${uid}-sel-err" role="alert"></p>
+        </div></div>
+        <button type="button" class="btn ghost toggle"></button>
+        <div class="slide form closed" inert><div>
+          <p class="warn">Remplissez avec une attention toute particulière cette partie, svp.</p>
+        </div></div>`;
+      root.querySelector('h2').textContent = libelle;
+      const pick = root.querySelector('.pick'), form = root.querySelector('.form'),
+            sel = root.querySelector('select'), selErr = root.querySelector('.pick .err'),
+            tg = root.querySelector('.toggle'), box = form.firstElementChild;
+
+      // ---------- Champs du mini-questionnaire ----------
+      const ibanCheck = v => validIban(v) ? '' : 'Cet IBAN semble invalide : vérifiez chaque caractère (la clé de contrôle est incorrecte).';
+      const FIELDS = pres ? [
+        { key: 'nom',  label: 'Nom associé au RIB du prestataire', req: 'Indiquez le nom associé au RIB du prestataire.' },
+        { key: 'iban', label: 'IBAN du prestataire', req: `Indiquez l'IBAN du prestataire.`, check: ibanCheck, ph: 'FR76 …' }
+      ] : [
+        { key: 'prenom', label: 'Prénom associé au RIB du bénéficiaire', req: 'Indiquez le prénom associé au RIB.' },
+        { key: 'nom',    label: 'Nom associé au RIB du bénéficiaire', req: 'Indiquez le nom associé au RIB.' },
+        { key: 'mail',   label: 'Adresse mail du bénéficiaire (si possible Gmail)', type: 'email',
+          check: v => MAIL_RE.test(v) ? '' : 'Cette adresse mail ne semble pas valide.' },
+        { key: 'tel',    label: 'Numéro de téléphone du bénéficiaire', type: 'tel',
+          check: v => TEL_RE.test(v) ? '' : 'Ce numéro de téléphone ne semble pas valide.' },
+        { key: 'role',   label: `Rôle dans l'AEn7 du bénéficiaire`, def: 'Membre AEn7' },
+        { key: 'iban',   label: 'IBAN du bénéficiaire', req: `Indiquez l'IBAN du bénéficiaire.`, check: ibanCheck, ph: 'FR76 …' }
+      ];
+
+      const inputs = {}, errs = {};
+      FIELDS.forEach(f => {
+        const w = mk(`<div><label class="f" for="${uid}-${f.key}"></label>
+          <input type="${f.type || 'text'}" id="${uid}-${f.key}" autocomplete="off" maxlength="${f.key === 'iban' ? 42 : 200}" aria-describedby="${uid}-${f.key}-err">
+          <p class="err" id="${uid}-${f.key}-err" role="alert"></p></div>`);
+        const el = w.querySelector('input');
+        w.querySelector('label').textContent = f.label;
+        el.value = f.def || ''; el.placeholder = f.ph || '';
+        inputs[f.key] = el; errs[f.key] = w.querySelector('.err');
+
+        if (f.key === 'iban') el.addEventListener('input', () => {   // reformate en gardant le curseur au bon endroit
+          const n = el.value.slice(0, el.selectionStart).replace(/\s/g, '').length;
+          el.value = fmtIban(el.value);
+          let i = 0, c = 0; while (i < el.value.length && c < n) { if (el.value[i] !== ' ') c++; i++ }
+          el.setSelectionRange(i, i);
+        });
+        el.addEventListener('blur', () => { if (adding) checkField(f) });   // pas d'erreur quand on quitte le mode « nouveau »
+        el.addEventListener('input', () => { if (errs[f.key].textContent) checkField(f) });
+        box.append(w);
+      });
+
+      // ---------- Validation ----------
+      function checkField(f) {
+        const el = inputs[f.key], v = el.value.trim();
+        const m = !v ? (f.req || '') : (f.check ? f.check(v) : '');
+        errs[f.key].textContent = m; el.classList.toggle('bad', !!m);
+        m ? el.setAttribute('aria-invalid', 'true') : el.removeAttribute('aria-invalid');
+        return m;
+      }
+      function checkSelect() {
+        const m = sel.value ? '' : `Choisissez un ${kind} dans la liste ou ajoutez-en un nouveau.`;
+        selErr.textContent = m; sel.classList.toggle('bad', !!m);
+        m ? sel.setAttribute('aria-invalid', 'true') : sel.removeAttribute('aria-invalid');
+        return m;
+      }
+      sel.addEventListener('change', checkSelect);
+
+      function clearErrors() {
+        selErr.textContent = ''; sel.classList.remove('bad'); sel.removeAttribute('aria-invalid');
+        FIELDS.forEach(f => { errs[f.key].textContent = ''; inputs[f.key].classList.remove('bad'); inputs[f.key].removeAttribute('aria-invalid') });
+      }
+
+      // Retourne true si tout est valide (sinon affiche les erreurs et place le focus sur la première)
+      function run() {
+        if (!adding) { const m = checkSelect(); if (m) sel.focus(); return !m }
+        const bad = FIELDS.filter(f => checkField(f));
+        if (bad.length) inputs[bad[0].key].focus();
+        return !bad.length;
+      }
+
+      // ---------- Bascule menu <-> nouveau ----------
+      function setMode(on, animate = true) {
+        adding = on;
+        pick.classList.toggle('closed', on); pick.toggleAttribute('inert', on);          // inert : plus de focus ni de lecture d'écran
+        form.classList.toggle('closed', !on); form.toggleAttribute('inert', !on);
+        tg.textContent = on ? `Choisir un ${kind} existant` : `+ Ajouter un ${kind}`;
+        tg.setAttribute('aria-expanded', on);
+        clearErrors();
+        clearTimeout(timer);
+        if (!animate) return;
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        timer = setTimeout(() => {                                                       // on attend la fin du déploiement
+          if (on) inputs[FIELDS[0].key].focus({ preventScroll: true });
+          root.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: on ? 'start' : 'nearest' });
+        }, reduce ? 0 : T);
+      }
+      tg.onclick = () => setMode(!adding);
+
+      // ---------- API ----------
+      // (Re)remplit le menu ; si la liste est vide, on ouvre directement la création (et on cache le bouton)
+      function refresh(items) {
+        list = items || [];
+        sel.innerHTML = '<option value="">— Choisir —</option>';
+        list.forEach(b => {
+          const o = document.createElement('option');
+          o.value = b.id;
+          o.textContent = ((b.first + ' ' + b.last).trim() || '(sans nom)') + (b.iban ? ' (' + b.iban + ')' : '');   // l'IBAN est déjà masqué par le serveur
+          sel.append(o);
+        });
+        tg.classList.toggle('hidden', !list.length);
+        setMode(!list.length, false);
+      }
+
+      // Données à envoyer au serveur (clés lues par planBeneficiary_)
+      function payload() {
+        if (!adding) return { beneficiaryId: sel.value, newBeneficiary: {} };
+        const g = k => inputs[k] ? inputs[k].value.trim() : '';       // prestataire : prenom/mail/tel/role partent vides
+        return { beneficiaryId: '', newBeneficiary: { prenom: g('prenom'), nom: g('nom'), mail: g('mail'), tel: g('tel'), role: g('role'), iban: g('iban').replace(/\s/g, '').toUpperCase() } };
+      }
+
+      function reset() {
+        FIELDS.forEach(f => inputs[f.key].value = f.def || '');
+        sel.selectedIndex = 0; setMode(!list.length, false);
+      }
+
+      refresh([]);
+      return { refresh, run, payload, reset };
+    }
+
+    /*=====================================================================
+        Formulaire
+      ===================================================================== */
     // Structure : 
     const SEC = { NDF: ['s2', 's5'], DSH: ['s3', 's5'], FAC: ['s4', 's6'] };
 
@@ -838,9 +1021,9 @@
 
     // section 3 dsh
     const tDescDSH = Description($('s3').querySelector('#DescDSH'),
-      'Raison de la non obtention d\'un justificatif', 
-      'Ex : J\'ai acheté mon article sur Vinted, un site ne fournissant pas de facture', 
-      'Ajoutez la raison de non obtention de votre justificatif.', 
+      'Raison de la non obtention d\'un justificatif',
+      'Ex : J\'ai acheté mon article sur Vinted, un site ne fournissant pas de facture',
+      'Ajoutez la raison de non obtention de votre justificatif.',
       1000, 'reason'
     );
     const tDSH = lineTable($('dsh-table'));
@@ -857,6 +1040,17 @@
       'Indiquez un montant strictement positif, avec 2 décimales maximum.'
     );
     const fFac = fileDrop($('fac-files'), { pdf: true });
+
+    //section 56
+    const bMem = beneprest('mem-benef', 'Bénéficiaire');
+    const bFac = beneprest('mem-prest', 'Prestataire');
+
+    function refreshLists() { bMem.refresh(benefList); bFac.refresh(prestList); }
+
+    // À l'envoi :
+    const b = type === 'FAC' ? bFac : bMem;
+    if (!b.run()) return;
+    const body = { action: 'submit', type, reqId, /* … */ ...b.payload() };
 
   </script>
 </body>
