@@ -571,11 +571,9 @@
 /*=====================================================================
     Configuration
   ===================================================================== */
-    // Limites des pièces : mêmes valeurs que le serveur (a importer par la suite)
-    const MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024,
-      EXT_OK = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp', 'tif', 'tiff', 'avif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'odt', 'ods', 'csv', 'txt', 'rtf'];
-    const benefList = [];
-    const prestList = [];
+    let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024,
+        EXT_OK = ['jpg','jpeg','png','gif','webp','heic','heif','bmp','tif','tiff','avif','pdf','doc','docx','xls','xlsx','odt','ods','csv','txt','rtf'];
+    let benefList = [], prestList = [];
 
     function applyContext(c) {
       if (c.maxFiles) MAX_FILES = c.maxFiles;
