@@ -784,6 +784,15 @@
       $(s).querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
       // Reste Parties dynamiques (tableaux, fichiers)
     }
+/*=====================================================================
+    Outils Bénéficiarie/Préstataire
+  ===================================================================== */
+
+    // Remplit les menus avec les listes du club (le serveur ne renvoie que celles du club connecté)
+    function refreshLists() {
+      bFac.refresh(ctx.prestataires || ctx.beneficiaries || []);
+      bMem.refresh(ctx.beneficiaries || []);
+    }
 
 /*=====================================================================
     Formulaire
