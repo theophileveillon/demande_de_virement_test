@@ -942,6 +942,10 @@
     const libelleFac = zoneTexte({ label: 'Libellé du virement (si demandé par le prestataire)', placeholder: 'fac - 260931', max: 140 });
     const montantFac = montant({ label: 'Montant de la facture (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
     const fichierFac = fichiers({ pdf: true });
+    const montantTicket   = montant({ label: 'Montant du ticket (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
+    const descTicket      = zoneTexte({ label: 'Description courte du ticket', placeholder: 'Ex : Ticket n°42 – achat de peinture', erreur: 'Ajoutez une courte description du ticket.', max: 300 });
+    const tableauTicket   = tableau();
+    const fichiersTicket  = fichiers({ obligatoire: false });   // mettre true si le dépôt est obligatoire
 
     const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
     const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
@@ -964,6 +968,13 @@
       libelleFac, montantFac,
       sousTitre('Facture (PDF uniquement, 1 fichier, 10 Mo maximum)'), fichierFac
     ], 'Attention : un devis (même signé) n\'est pas une facture. Tout prestataire a l\'obligation de vous fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club pour garder une bonne trace de votre trésorerie.');
+
+    const carteTicket = carte('Ticket interne', [
+      montantTicket,
+      descTicket,
+      sousTitre('Tableau du ticket'), tableauTicket,
+      sousTitre('Justificatifs'), aide(AIDE_FICHIERS), fichiersTicket
+    ]);
 
     const carteBenef = carte('Bénéficiaire', [listeBenef]);
     const cartePrest = carte('Prestataire', [listePrest]);
@@ -988,12 +999,16 @@
         libelle: 'Une Facture (FAC)',
         cartes: [carteFAC, cartePrest], fichiers: fichierFac, personne: listePrest,
         donnees: () => ({ amount: montantFac.valeur(), label: libelleFac.valeur() })
+      },
+      TIC: {
+        libelle: 'Un Ticket interne (TIC)',
+        cartes: [carteTicket, carteBenef], fichiers: fichiersTicket, personne: listeBenef,
+        donnees: () => ({ amount: montantTicket.valeur(), reason: descTicket.valeur(), table: tableauTicket.valeur() })
       }
     };
-    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteBenef, cartePrest];
-
+    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteBenef, cartePrest];
     /* =====================================================================
-       PARTIE 6 — AFFICHAGE : choix du type et montage de la page
+       AFFICHAGE : choix du type et montage de la page
        ===================================================================== */
 
     let type = '';   // 'NDF', 'DSH', 'FAC' ou ''
@@ -1029,7 +1044,7 @@
     $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
 
     /* =====================================================================
-       PARTIE 7 — ENVOI
+       ENVOI
        ===================================================================== */
 
     $('form').addEventListener('submit', e => e.preventDefault());
