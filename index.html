@@ -643,7 +643,7 @@
       erreur: 'Ajoutez la raison de non obtention de votre justificatif.', max: 1000
     });
     const tableauDSH  = tableau({ label: 'Tableau de la DSH' });
-    const fichiersDSH = fichiers({ label: 'Justificatifs (facultatif)', aide: AIDE_FICHIERS, obligatoire: false });
+    const fichiersDSH = fichiers({ label: 'Justificatifs', aide: AIDE_FICHIERS, obligatoire: false });
 
     const libelleFac = zoneTexte({ label: 'Libellé du virement (si demandé par le prestataire)', placeholder: 'fac - 260931', max: 140 });
     const montantFac = montant({ label: 'Montant de la facture (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
@@ -651,8 +651,8 @@
 
     const montantTicket  = montant({ label: 'Montant du ticket (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
     const descTicket     = zoneTexte({ label: 'Description courte du ticket', placeholder: 'Ex : Ticket n°42 – achat de peinture', erreur: '', max: 300 });
-    const tableauTicket = tableau({ label: 'Tableau du ticket (facultatif)', obligatoire: false });
-    const fichiersTicket = fichiers({ label: 'Justificatifs (facultatif)', aide: AIDE_FICHIERS, obligatoire: false });
+    const tableauTicket = tableau({ label: 'Tableau du ticket', obligatoire: false });
+    const fichiersTicket = fichiers({ label: 'Justificatifs', aide: AIDE_FICHIERS, obligatoire: false });
 
     const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
     const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
