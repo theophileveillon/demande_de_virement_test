@@ -324,10 +324,7 @@
     }
 
     /* ---------- 3.3 Tableau de lignes (nom / quantité / prix) ----------
-       tableau({ label:'Titre du tableau', obligatoire:true })
-       - obligatoire (par défaut : true) : étoile + au moins une ligne exigée.
-         Avec obligatoire:false, un tableau vide est accepté ; mais s'il est commencé,
-         il doit être complet et correct.
+       tableau({ label:'Titre du tableau' })   (toujours obligatoire, donc étoile)
        valeur() -> [{nom, qte, pu}, …] */
     function tableau({ label = '', obligatoire = true } = {}) {
       const el = html(`<div><h3></h3>
@@ -337,7 +334,7 @@
         <p class="total">Total : <strong>0,00 €</strong></p><p class="err" role="alert"></p></div>`);
       const lignes = el.querySelector('.rows'), total = el.querySelector('strong'), msg = el.querySelector('.err');
       const titre = el.querySelector('h3');
-      if (label) ecrireLabel(titre, label, obligatoire); else titre.remove();   // étoile seulement si obligatoire
+      if (label) ecrireLabel(titre, label, obligatoire); else titre.remove();
 
       // Lit une ligne du tableau -> { nom, qte, pu }
       const lire = l => ({ nom: l.querySelector('.name').value.trim(), qte: l.querySelector('.qty').value, pu: l.querySelector('.price').value });
@@ -357,8 +354,7 @@
       function message() {
         const toutes = [...lignes.children].map(lire), utiles = toutes.filter(remplie), somme = recalculer();
         const mauvaise = toutes.findIndex(l => remplie(l) && (!l.nom || !(+l.qte > 0) || l.pu === '' || isNaN(+l.pu)));
-        if (!utiles.length) return obligatoire ? 'Ajoutez au moins une ligne avec un nom, une quantité et un prix unitaire.' : '';   // facultatif : vide = OK
-        if (mauvaise >= 0) return `La ligne ${mauvaise + 1} est incomplète : il faut un nom, une quantité positive et un prix unitaire.`;
+        if (!utiles.length) return obligatoire ? 'Ajoutez au moins une ligne avec un nom, une quantité et un prix unitaire.' : '';        if (mauvaise >= 0) return `La ligne ${mauvaise + 1} est incomplète : il faut un nom, une quantité positive et un prix unitaire.`;
         if (utiles.some(l => plusDeCentimes(+l.pu))) return 'Les prix unitaires doivent être exprimés au centime près (2 décimales maximum).';
         if (somme <= 0) return 'Le total général doit être strictement positif (une ligne négative, comme une réduction, est acceptée).';
         return '';
@@ -653,11 +649,10 @@
     const montantFac = montant({ label: 'Montant de la facture (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
     const fichierFac = fichiers({ label: 'Facture (PDF uniquement, 1 fichier, 10 Mo maximum)', pdf: true });
 
-    // Ticket interne : seuls le montant et le club/bureau sont obligatoires (en plus de la description du virement)
     const montantTicket  = montant({ label: 'Montant du ticket (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
-    const descTicket     = zoneTexte({ label: 'Description courte du ticket (facultatif)', placeholder: 'Ex : Ticket n°42 – achat de peinture', erreur: '', max: 300 });
-    const tableauTicket  = tableau({ label: 'Tableau du ticket (facultatif)', obligatoire: false });
-    const fichiersTicket = fichiers({ label: 'Justificatifs (facultatif)', aide: AIDE_FICHIERS, obligatoire: false });   // obligatoire: true pour l'exiger
+    const descTicket     = zoneTexte({ label: 'Description courte du ticket', placeholder: 'Ex : Ticket n°42 – achat de peinture', erreur: '', max: 300 });
+    const tableauTicket = tableau({ label: 'Tableau du ticket (facultatif)', obligatoire: false });
+    const fichiersTicket = fichiers({ label: 'Justificatifs (facultatif)', aide: AIDE_FICHIERS, obligatoire: false });
 
     const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
     const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
