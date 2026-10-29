@@ -527,6 +527,7 @@
 
       <!-- ---------- BOUTON D'ENVOI ---------- -->
       <div id="sendBar" class="hidden">
+        <div id="resignin"></div>
         <p class="err" id="sendErr" role="alert"></p>
         <button type="button" class="btn big" id="send">Envoyer le formulaire</button>
       </div>
@@ -559,9 +560,6 @@
     const API = 'https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec',
       CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
 
-    // Identifiant unique de la demande (sert à regrouper les fichiers et la ligne du sheet)
-    function makeReqId() { try { if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID().replace(/-/g, '').slice(0, 32) } catch (e) { } return (Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 32) }
-
     let token = '',      // jeton Google (prouve l'identité auprès du serveur Apps Script)
       ctx = null,      // contexte renvoyé par le serveur : parametres/listes de bénéficiaires/prestataires du club
       type = '',       // NDF, DSH ou FAC
@@ -569,15 +567,22 @@
 
     // Appel au serveur Apps Script
     async function call(payload) {
-      const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, idToken: token }) });
-      const j = await r.json(); if (!j.ok) throw Error(j.error || 'Erreur serveur'); return j;
+      let j;
+      try {
+        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, idToken: token }) });
+        j = await r.json();
+      } catch (_) { throw Error('Impossible de joindre le serveur : vérifiez votre connexion puis réessayez.'); }
+      if (!j.ok) { const e = Error(j.error || 'Erreur serveur'); e.code = j.code; throw e; }
+      return j;
     }
 
     const status = (s, ok) => { $('status').textContent = s || ''; $('status').style.color = ok ? 'var(--mut)' : '' };
     const emailOf = t => { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || '' } catch (e) { return '' } };
 
     function credential(r) {
-      token = r.credential; status('Vérification de votre adresse en cours…', true);
+      token = r.credential;
+      if (ctx) { $('resignin').innerHTML = ''; $('sendErr').textContent = 'Session renouvelée : cliquez de nouveau sur « Envoyer ».'; return; }
+      status('Vérification de votre adresse en cours…', true);
       call({ action: 'context' }).then(x => {
         ctx = x; applyContext(ctx); refreshLists();
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
@@ -807,26 +812,19 @@
     }
 
     // supprime les reponses d'une section
-    function reset_section(s) {
-      $(s).querySelectorAll('input[type=text], input[type=email], input[type=tel], input[type=number], textarea')
-        .forEach(el => el.value = '');
-      $(s).querySelectorAll('select').forEach(el => el.selectedIndex = 0);
-      $(s).querySelectorAll('.err').forEach(p => p.textContent = '');
-      $(s).querySelectorAll('.bad').forEach(el => el.classList.remove('bad'));
-      $(s).querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
-      // Reste Parties dynamiques (tableaux, fichiers)
-    }
+  
     /*=====================================================================
         Outils Bénéficiarie/Préstataire
       ===================================================================== */
 
     // Un espace tous les 4 caractères (même règle que ibanFmt_ côté serveur)
     const fmtIban = s => s.replace(/\s/g, '').toUpperCase().slice(0, 34).replace(/(.{4})(?=.)/g, '$1 ');
-
+    const IBAN_LEN = { FR: 27, MC: 27, BE: 16, DE: 22, ES: 24, IT: 27, LU: 20, CH: 21, NL: 18, PT: 25, GB: 22, IE: 22, AT: 20 };
     // Clé de contrôle IBAN (modulo 97), copie de validIban_ côté serveur
     function validIban(v) {
       const s = v.replace(/\s/g, '').toUpperCase();
       if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+      if (IBAN_LEN[s.slice(0, 2)] && s.length !== IBAN_LEN[s.slice(0, 2)]) return false;
       const digits = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, c => String(c.charCodeAt(0) - 55));
       let rem = 0;
       for (const d of digits) rem = (rem * 10 + +d) % 97;
@@ -993,19 +991,6 @@
     const tDesc = Description($('s1').querySelector('#label'), label, helpLabel, errLabel, 300);
 
     // Choix du type
-    function chose_type(valeur) {
-      type = valeur;
-      ['s2', 's3', 's4', 's5'].forEach(s => {
-        if (valeur && SEC[type].includes(s)) {
-          $(s).classList.remove('hidden');
-        } else {
-          reset_section(s);
-          $(s).classList.add('hidden');
-        }
-      });
-      $('sendBar').classList.toggle('hidden', !valeur);
-      $('e-typeBox').textContent = '';
-    }
 
     document.querySelectorAll('input[name=type]').forEach(r =>
       r.addEventListener('click', () => {
@@ -1044,13 +1029,30 @@
     //section 56
     const bMem = beneprest('mem-benef', 'Bénéficiaire');
     const bFac = beneprest('mem-prest', 'Prestataire');
+    
+    const SECTIONS = ['s2', 's3', 's4', 's5', 's6'];
+    const RESETS = {
+      s2: () => { tNDF.reset(); fNDF.reset(); },
+      s3: () => { tDescDSH.reset(); tDSH.reset(); fDSH.reset(); },
+      s4: () => { tlibelleFac.reset(); tAmountFac.reset(); fFac.reset(); },
+      s5: () => bMem.reset(),
+      s6: () => bFac.reset()
+    };
+    function chose_type(valeur) {
+      type = valeur || '';
+      SECTIONS.forEach(s => {
+        const show = !!valeur && SEC[valeur].includes(s), el = $(s);
+        if (!show && !el.classList.contains('hidden')) RESETS[s]();   // on ne vide que ce qui était affiché
+        el.classList.toggle('hidden', !show);
+      });
+      $('sendBar').classList.toggle('hidden', !valeur);
+      $('e-typeBox').textContent = ''; $('sendErr').textContent = '';
+    }
 
     function refreshLists() { bMem.refresh(benefList); bFac.refresh(prestList); }
 
     // À l'envoi :
-    const b = type === 'FAC' ? bFac : bMem;
-    if (!b.run()) return;
-    const body = { action: 'submit', type, reqId, /* … */ ...b.payload() };
+    $('form').addEventListener('submit', e => e.preventDefault());
 
   </script>
 </body>
