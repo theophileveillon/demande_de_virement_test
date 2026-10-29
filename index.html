@@ -567,6 +567,7 @@
         if (Array.isArray(ctx.extOk)) EXT_OK = ctx.extOk;
         listeBenef.rafraichir(ctx.benef);      // remplit les menus déroulants
         listePrest.rafraichir(ctx.prest);
+        menuClubs.rafraichir(ctx.list_club_bureau);   // ← nouveau
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
         $('who').textContent = 'Connecté en tant que ' + emailOf(token);
       }).catch(e => status(e.message));
@@ -770,6 +771,36 @@
       return { el, valider, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
     }
 
+    /* ---------- Menu déroulant simple ----------
+      menuListe({ label:'…', erreur:'…' })
+      rafraichir(liste) remplit le menu ; valeur() -> le texte choisi ('' si rien) */
+    function menuListe({ label, erreur }) {
+      const id = nouvelId();
+      const el = html(`<div><label class="f" for="${id}"></label>
+        <select id="${id}"></select><p class="err" role="alert"></p></div>`);
+      const menu = el.querySelector('select'), msg = el.querySelector('.err');
+      el.querySelector('label').textContent = label;
+
+      const valider = () => montrerErreur(menu, msg, menu.value ? '' : erreur);
+      menu.addEventListener('change', valider);
+
+      function rafraichir(items) {
+        menu.innerHTML = '<option value="">— Choisir —</option>';
+        (items || []).forEach(nom => {
+          const o = document.createElement('option');
+          o.value = nom; o.textContent = nom;
+          menu.append(o);
+        });
+      }
+      rafraichir([]);
+
+      return {
+        el, valider, rafraichir,
+        valeur: () => menu.value,
+        vider: () => { menu.selectedIndex = 0; montrerErreur(menu, msg, ''); }
+      };
+    }
+
     /* ---------- Menu déroulant + « ajouter un nouveau » ----------
        choixPersonne({ mot:'bénéficiaire', champs:[…] })
        - Menu avec les personnes déjà connues, OU mini-formulaire pour en créer une.
@@ -949,6 +980,7 @@
 
     const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
     const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
+    const menuClubs = menuListe({ label: 'Bureau ou club destinataire', erreur: 'Choisissez le bureau ou club destinataire.' });
 
     // --- Les cartes ---
     const AIDE_FICHIERS = 'Images (HEIC, PDF, Word, Excel, texte...) : 10 fichiers maximum, 10 Mo chacun.';
@@ -978,6 +1010,7 @@
 
     const carteBenef = carte('Bénéficiaire', [listeBenef]);
     const cartePrest = carte('Prestataire', [listePrest]);
+    const carteClubs = carte('Destinataire', [menuClubs]);
 
     // --- LA table de correspondance : pour chaque type, ce qu'on affiche et ce qu'on envoie ---
     //   cartes     : les sections affichées
@@ -1002,12 +1035,12 @@
       },
       TIC: {
         libelle: 'Un Ticket interne (TIC)',
-        cartes: [carteTicket, carteBenef], fichiers: fichiersTicket, personne: listeBenef,
+        cartes: [carteTicket, carteClubs], fichiers: fichiersTicket,
+        personne: { valeur: () => ({ club: menuClubs.valeur() }) },   // voir note ci-dessous
         donnees: () => ({ amount: montantTicket.valeur(), reason: descTicket.valeur(), table: tableauTicket.valeur() })
       }
     };
-    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteBenef, cartePrest];
-    /* =====================================================================
+    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteClubs, carteBenef, cartePrest];    /* =====================================================================
        AFFICHAGE : choix du type et montage de la page
        ===================================================================== */
 
