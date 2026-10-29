@@ -5,7 +5,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Demande de virement – AEn7</title>
-  <!-- Bibliothèque Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     /* ============ 1. THÈME : les couleurs ============ */
@@ -441,8 +440,6 @@
 </head>
 
 <body>
-
-  <!-- ================= EN-TÊTE ================= -->
   <header class="hero">
     <img src="logo_AE.png" alt="Logo de l'AEn7" onerror="this.remove()">
     <h1>Demande de virement</h1>
@@ -452,7 +449,6 @@
   </header>
 
   <main>
-    <!-- ================= CONNEXION GOOGLE ================= -->
     <section class="card" id="login">
       <p class="warn">/!\ Utilisez le mail de la trésorerie de votre bureau ou club, sinon la connexion ne fonctionnera
         pas. /!\</p>
@@ -460,72 +456,10 @@
       <p id="status" class="err" role="alert"></p>
     </section>
 
-    <!-- ================= FORMULAIRE  ================= -->
+    <!-- Le contenu du formulaire (#sections) est fabriqué par le JavaScript -->
     <form id="form" class="hidden" novalidate autocomplete="off">
       <p class="mut" id="who"></p>
-
-      <!-- ---------- SECTION 1 : libellé ---------- -->
-      <section class="card" id="s1">
-        <div id="label"></div>
-
-        <fieldset id="typeBox">
-          <legend>Mon justificatif est :</legend>
-          <label class="choice"><input type="radio" name="type" value="NDF"> Une Note De Frais (NDF)</label>
-          <label class="choice"><input type="radio" name="type" value="DSH"> Une Déclaration Sur l'Honneur (DSH)</label>
-          <label class="choice"><input type="radio" name="type" value="FAC"> Une Facture (FAC)</label>
-        </fieldset>
-        <p class="err" id="e-typeBox" role="alert"></p>
-      </section>
-
-      <!-- ---------- SECTION 2 : Note de frais ---------- -->
-      <section class="card hidden" id="s2">
-        <h2>Note De Frais</h2>
-        <p class="note">Une NDF permet UNIQUEMENT de rembourser un membre de l'AEn7. Les tickets de carte, les screens
-          de compte bancaire ou les « je te jure j'ai payé » ne permettent pas de créer une NDF.</p>
-        <h3>Tableau de la NDF</h3>
-        <div id="ndf-table"></div>
-        <h3>Justificatifs</h3>
-        <p class="mut">Images (HEIC, PDF, Word, Excel, texte...) : 10 fichiers maximum, 10 Mo chacun.</p>
-        <div id="ndf-files"></div>
-      </section>
-
-      <!-- ---------- SECTION 3 : Déclaration sur l'honneur ---------- -->
-      <section class="card hidden" id="s3">
-        <h2>Déclaration sur l'honneur</h2>
-        <div id="DescDSH"> </div>
-        <h3>Tableau de la DSH</h3>
-        <div id="dsh-table"></div>
-        <h3>Justificatifs (facultatif)</h3>
-        <p class="mut">Images (HEIC, PDF, Word, Excel, texte...) : 10 fichiers maximum, 10 Mo chacun.</p>
-        <div id="dsh-files"></div>
-      </section>
-
-      <!-- ---------- SECTION 4 : Facture ---------- -->
-      <section class="card hidden" id="s4">
-        <h2>Facture</h2>
-        <p class="note">Attention : un devis (même signé) n'est pas une facture. Tout prestataire a l'obligation de vous
-          fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club
-          pour garder une bonne trace de votre trésorerie.</p>
-
-        <div id="libelleFac"></div>
-
-        <div id="montantFac"></div>
-
-        <h3>Facture (PDF uniquement, 1 fichier, 10 Mo maximum)</h3>
-        <div id="fac-files"></div>
-      </section>
-
-      <!-- ---------- SECTION 5 : Bénéficiaire (après NDF ou DSH) ---------- -->
-      <section class="card hidden" id="s5">
-        <div id="mem-benef"></div>
-      </section>
-
-      <!-- ---------- SECTION 6 : Préstataire (après FAC) ---------- -->
-      <section class="card hidden" id="s6">
-        <div id="mem-prest"></div>
-      </section>
-
-      <!-- ---------- BOUTON D'ENVOI ---------- -->
+      <div id="sections"></div>
       <div id="sendBar" class="hidden">
         <div id="resignin"></div>
         <p class="err" id="sendErr" role="alert"></p>
@@ -533,7 +467,6 @@
       </div>
     </form>
 
-    <!-- ================= ÉCRAN DE FIN ================= -->
     <section class="card done hidden" id="done">
       <h2>Demande envoyée</h2>
       <p id="doneText"></p>
@@ -541,7 +474,6 @@
     </section>
   </main>
 
-  <!-- ================= ANIMATION D'ENVOI ================= -->
   <div id="overlay" class="hidden" role="alertdialog" aria-live="assertive">
     <div class="box">
       <h2>Envoi en cours…</h2>
@@ -554,18 +486,62 @@
   <footer><a href="confidentialite.html">Politique de confidentialité</a></footer>
 
   <script>
-    /*=====================================================================
-        Connexion serveur
-      ===================================================================== */
-    const API = 'https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec',
-      CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
+    /* =====================================================================
+       PETITS OUTILS
+       ===================================================================== */
 
-    let token = '',      // jeton Google (prouve l'identité auprès du serveur Apps Script)
-      ctx = null,      // contexte renvoyé par le serveur : parametres/listes de bénéficiaires/prestataires du club
-      type = '',       // NDF, DSH ou FAC
-      reqId = makeReqId();
+    // Raccourci
+    const $ = id => document.getElementById(id);
 
-    // Appel au serveur Apps Script
+    // Transforme un texte HTML en vrai élément de la page
+    const html = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
+
+    // Donne un identifiant unique
+    let compteurId = 0;
+    const nouvelId = () => 'champ' + (++compteurId);
+
+    // 1250 centimes -> "12,50 €"
+    const eur = c => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    // Vrai si le nombre a plus de 2 décimales
+    const plusDeCentimes = v => Math.abs(v * 100 - Math.round(v * 100)) > 1e-6;
+    // "photo.JPG" -> "jpg"
+    const extension = nom => (nom.match(/\.([A-Za-z0-9]+)$/) || ['', ''])[1].toLowerCase();
+
+    // Identifiant unique d'une demande (regroupe les fichiers et la ligne du sheet)
+    function makeReqId() {
+      try { return crypto.randomUUID().replace(/-/g, '').slice(0, 32); }
+      catch (e) { return (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 32); }
+    }
+
+    // Affiche ou efface une erreur sous un champ.
+    //   champ   = le <input>/<select>/<textarea>   (il devient rouge)
+    //   zoneMsg = le <p class="err"> sous le champ
+    //   message = le texte d'erreur, ou '' si tout va bien
+    // Retourne true si le champ est valide.
+    function montrerErreur(champ, zoneMsg, message) {
+      zoneMsg.textContent = message;
+      champ.classList.toggle('bad', !!message);
+      if (message) champ.setAttribute('aria-invalid', 'true');
+      else champ.removeAttribute('aria-invalid');
+      return !message;
+    }
+
+    /* =====================================================================
+       CONNEXION AU SERVEUR (Google + Apps Script)
+       ===================================================================== */
+
+    const API = 'https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec';
+    const CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
+
+    let token = '';            // jeton Google : prouve qui vous êtes au serveur
+    let ctx = null;            // infos reçues du serveur (listes de bénéficiaires, limites…)
+    let reqId = makeReqId();
+
+    // Réglages (le serveur peut les modifier à la connexion)
+    let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024;
+    let EXT_OK = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp', 'tif', 'tiff', 'avif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'odt', 'ods', 'csv', 'txt', 'rtf'];
+
+    // Envoie un message au serveur et attend sa réponse
     async function call(payload) {
       let j;
       try {
@@ -576,569 +552,556 @@
       return j;
     }
 
-    const status = (s, ok) => { $('status').textContent = s || ''; $('status').style.color = ok ? 'var(--mut)' : '' };
-    const emailOf = t => { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || '' } catch (e) { return '' } };
+    const status = (txt, neutre) => { $('status').textContent = txt || ''; $('status').style.color = neutre ? 'var(--mut)' : ''; };
+    const emailOf = t => { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || ''; } catch (e) { return ''; } };
 
+    // Appelée par Google quand la personne s'est connectée
     function credential(r) {
       token = r.credential;
       if (ctx) { $('resignin').innerHTML = ''; $('sendErr').textContent = 'Session renouvelée : cliquez de nouveau sur « Envoyer ».'; return; }
       status('Vérification de votre adresse en cours…', true);
       call({ action: 'context' }).then(x => {
-        ctx = x; applyContext(ctx); refreshLists();
+        ctx = x;
+        if (ctx.maxFiles) MAX_FILES = ctx.maxFiles;
+        if (ctx.maxBytes) MAX_BYTES = ctx.maxBytes;
+        if (Array.isArray(ctx.extOk)) EXT_OK = ctx.extOk;
+        listeBenef.rafraichir(ctx.benef);      // remplit les menus déroulants
+        listePrest.rafraichir(ctx.prest);
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
         $('who').textContent = 'Connecté en tant que ' + emailOf(token);
       }).catch(e => status(e.message));
     }
+
+    // Affiche le bouton « Se connecter avec Google » dès que la bibliothèque est chargée
     window.addEventListener('load', () => {
-      let tries = 0;
+      let essais = 0;
       const init = () => {
         if (window.google && google.accounts && google.accounts.id) {
           google.accounts.id.initialize({ client_id: CLIENT_ID, callback: credential });
-          google.accounts.id.renderButton($('signin'), { theme: 'outline', size: 'large' }); return;
+          google.accounts.id.renderButton($('signin'), { theme: 'outline', size: 'large' });
+          return;
         }
-        if (++tries < 20) return setTimeout(init, 250);
+        if (++essais < 20) return setTimeout(init, 250);
         status('Impossible de charger la connexion Google.');
       };
       init();
     });
 
-    /*=====================================================================
-        Configuration
-      ===================================================================== */
-    let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024,
-      EXT_OK = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp', 'tif', 'tiff', 'avif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'odt', 'ods', 'csv', 'txt', 'rtf'];
-    let benefList = [], prestList = [];
+    /* =====================================================================
+       LES COMPOSANTS
+       Chaque fonction ci-dessous construit UN type d'élément de formulaire.
+       Toutes renvoient le même genre d'objet :
+         {
+           el        : l'élément HTML à afficher
+           valider() : vérifie le champ, affiche l'erreur, renvoie true/false
+           valeur()  : renvoie ce que la personne a saisi
+           vider()   : remet le champ à zéro
+         }
+       ===================================================================== */
 
-    function applyContext(c) {
-      if (c.maxFiles) MAX_FILES = c.maxFiles;
-      if (c.maxBytes) MAX_BYTES = c.maxBytes;
-      if (Array.isArray(c.extOk)) EXT_OK = c.extOk;
-      benefList = c.benef || [];
-      prestList = c.prest || [];
-    }
+    /* ---------- Zone de texte ----------
+       zoneTexte({ label:'…', placeholder:'…', erreur:'…', max:300 })
+       - erreur : message si vide. Si on ne met pas d'erreur, le champ est facultatif. */
+    function zoneTexte({ label, placeholder = '', erreur = '', max = 0 }) {
+      const id = nouvelId();
+      const el = html(`<div><label class="f" for="${id}"></label>
+        <textarea id="${id}" rows="2"></textarea><p class="err" role="alert"></p></div>`);
+      const champ = el.querySelector('textarea'), msg = el.querySelector('.err');
+      el.querySelector('label').textContent = label;
+      champ.placeholder = placeholder;
+      if (max) champ.maxLength = max;
 
-    /*=====================================================================
-        Outils
-      ===================================================================== */
-    // juste un raccourci
-    const $ = id => document.getElementById(id);
-
-    // Identifiant unique de la demande (sert à regrouper les fichiers et la ligne du sheet)
-    function makeReqId() { try { if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID().replace(/-/g, '').slice(0, 32) } catch (e) { } return (Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 32) }
-
-    // Montant en centimes -> euros
-    const eur = c => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-    const notCents = v => Math.abs(v * 100 - Math.round(v * 100)) > 1e-6;
-
-    //ligne magique pour inclure du html via js
-    const mk = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild };
-    //ligne magique pour les extentions de fichier
-    const extOf = n => (n.match(/\.([A-Za-z0-9]+)$/) || ['', ''])[1].toLowerCase();
-
-    // Tableau
-    function lineTable(root) {
-      root.innerHTML = `<div class="lt-head"><span>Nom</span><span>Quantité</span><span>Prix unitaire</span><span style="text-align:right">Total</span><span></span></div>
-      <div class="rows"></div>
-      <button type="button" class="btn ghost add">+ Ajouter une ligne</button>
-      <p class="total">Total : <strong>0,00 €</strong></p><p class="err" role="alert"></p>`;
-      const rows = root.querySelector('.rows'), tot = root.querySelector('strong'), err = root.querySelector('.err');
-
-      const read = r => ({ nom: r.querySelector('.name').value.trim(), qte: r.querySelector('.qty').value, pu: r.querySelector('.price').value });
-      const filled = r => r.nom || r.qte || r.pu;                       // ligne non vide ?
-      const cents = r => Math.round((+r.qte || 0) * (+r.pu || 0) * 100);    // total de ligne en centimes
-
-      function recalc() {                                        // met à jour l'affichage en direct
-        let t = 0;
-        [...rows.children].forEach(el => { const c = cents(read(el)); el.querySelector('.line').textContent = eur(c); t += c });
-        tot.textContent = eur(t); tot.classList.toggle('neg', t < 0); return t;
-      }
-      function add() {                                           // ajoute une ligne vide
-        const d = mk(`<div class="lt-row">
-        <label><span>Nom</span><input type="text" class="name" maxlength="200" placeholder="Ex : Farine"></label>
-        <label><span>Quantité</span><input type="number" class="qty" step="any" inputmode="decimal" placeholder="1"></label>
-        <label><span>Prix unitaire (€)</span><input type="number" class="price" step="0.01" inputmode="decimal" placeholder="0,00"></label>
-        <output class="line">0,00 €</output>
-        <button type="button" class="x" aria-label="Supprimer la ligne">×</button></div>`);
-        d.addEventListener('input', () => { recalc(); if (err.textContent) run() });
-        d.addEventListener('focusout', e => {
-          if (d.contains(e.relatedTarget)) return;
-          if (filled(read(d))) run();
-        });
-        d.querySelector('.x').onclick = () => {
-          if (rows.children.length > 1) d.remove();                 // on garde toujours au moins une ligne
-          else d.querySelectorAll('input').forEach(i => i.value = '');
-          recalc();
-        };
-        rows.append(d); recalc();
-      }
-      const data = () => [...rows.children].map(read).filter(filled);
-      function run() {
-        const all = [...rows.children].map(read), d = all.filter(filled), t = recalc(); let m = '';
-        const bad = all.findIndex(r => filled(r) && (!r.nom || !(+r.qte > 0) || r.pu === '' || isNaN(+r.pu)));
-        if (!d.length) m = 'Ajoutez au moins une ligne avec un nom, une quantité et un prix unitaire.';
-        else if (bad >= 0) m = `La ligne ${bad + 1} est incomplète : il faut un nom, une quantité positive et un prix unitaire.`;
-        else if (d.some(r => notCents(+r.pu))) m = 'Les prix unitaires doivent être exprimés au centime près (2 décimales maximum).';
-        else if (t <= 0) m = 'Le total général doit être strictement positif (une ligne négative, comme une réduction, est acceptée).';
-        err.textContent = m; root.classList.toggle('bad', !!m); return m;
-      }
-      root.querySelector('.add').onclick = add;
-      const reset = () => { rows.innerHTML = ''; add(); err.textContent = '' };
-      add();
-      return { data, reset, run: () => !run() };
-    }
-
-    // Description
-    function Description(root, label, placeholder, errMsg, length, id = 'desc') {
-      root.innerHTML = `<label class="f" for="${id}"></label>
-        <textarea id="${id}" rows="2" aria-describedby="e-${id}"></textarea>
-        <p class="err" id="e-${id}" role="alert"></p>`;
-      const lab = root.querySelector('label'),
-        input = root.querySelector('textarea'),
-        err = root.querySelector('.err');
-
-      lab.textContent = label;
-      input.placeholder = placeholder;
-      if (length > 0) input.maxLength = length;   // limite uniquement si length est fourni
-
-      // Agrandit la zone selon le contenu (pas de barre de défilement)
-      const grow = () => {
-        if (!input.offsetParent) return;                       // caché : scrollHeight = 0
-        input.style.height = 'auto';
-        input.style.height = input.scrollHeight + (input.offsetHeight - input.clientHeight) + 'px'; // + bordures
+      // La zone grandit toute seule avec le texte (pas de barre de défilement)
+      const agrandir = () => {
+        if (!champ.offsetParent) return;                 // caché : on ne peut pas mesurer
+        champ.style.height = 'auto';
+        champ.style.height = champ.scrollHeight + (champ.offsetHeight - champ.clientHeight) + 'px';
       };
-      let lastW = 0;
-      new ResizeObserver(() => {
-        if (input.offsetWidth !== lastW) { lastW = input.offsetWidth; grow(); }
-      }).observe(input);
+      let largeur = 0;
+      new ResizeObserver(() => { if (champ.offsetWidth !== largeur) { largeur = champ.offsetWidth; agrandir(); } }).observe(champ);
 
-      // Empêche la touche Entrée d'ajouter un saut de ligne (champ « une ligne » qui s'affiche sur plusieurs)
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault() });
+      champ.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });   // pas de saut de ligne
+      const valider = () => montrerErreur(champ, msg, (!erreur || champ.value.trim()) ? '' : erreur);
+      champ.addEventListener('blur', valider);
+      champ.addEventListener('input', () => { agrandir(); if (msg.textContent) valider(); });
 
-      function run() {
-        const ok = !errMsg || input.value.trim().length > 0;
-        err.textContent = ok ? '' : errMsg;
-        if (!errMsg) input.removeAttribute('aria-invalid');     // rien à signaler sur un champ facultatif
-        else input.setAttribute('aria-invalid', ok ? 'false' : 'true');
-        return ok;
-      }
-      input.addEventListener('blur', run);
-      input.addEventListener('input', () => { grow(); if (err.textContent) run() });
-
-      const value = () => input.value.trim();
-      const reset = () => { input.value = ''; err.textContent = ''; input.removeAttribute('aria-invalid'); grow() };
-
-      grow();
-      return { run, value, reset };
+      return {
+        el, valider,
+        valeur: () => champ.value.trim(),
+        vider: () => { champ.value = ''; montrerErreur(champ, msg, ''); agrandir(); }
+      };
     }
 
-    // Dépôt de fichier
-    function fileDrop(root, { pdf = false, need = true } = {}) {
-      let files = [], note = '';
-      root.innerHTML = `<label class="btn ghost">${pdf ? 'Choisir le PDF de la facture' : 'Ajouter des fichiers'}
-        <input type="file" hidden ${pdf ? 'accept="application/pdf,.pdf"' : 'multiple'}></label>
-      <ul class="files"></ul><p class="err" role="alert"></p>`;
-      const input = root.querySelector('input'), ul = root.querySelector('ul'), err = root.querySelector('.err');
+    /* ---------- Montant en euros ----------
+       montant({ label:'…', erreur:'…' })   valeur() -> 12.5 (nombre) ou null */
+    function montant({ label, erreur }) {
+      const id = nouvelId();
+      const el = html(`<div><label class="f" for="${id}"></label>
+        <input type="text" id="${id}" inputmode="decimal" placeholder="0,00"><p class="err" role="alert"></p></div>`);
+      const champ = el.querySelector('input'), msg = el.querySelector('.err');
+      el.querySelector('label').textContent = label;
 
-      function draw() {
+      const brut = () => champ.value.trim().replace(',', '.');
+      const valider = () => montrerErreur(champ, msg, /^\d+(\.\d{1,2})?$/.test(brut()) && +brut() > 0 ? '' : erreur);
+
+      champ.addEventListener('input', () => {
+        champ.value = champ.value.replace(/[^\d.,]/g, '');   // on n'accepte que chiffres , et .
+        if (msg.textContent) valider();
+      });
+      champ.addEventListener('blur', valider);
+
+      return {
+        el, valider,
+        valeur: () => brut() === '' ? null : +brut(),
+        vider: () => { champ.value = ''; montrerErreur(champ, msg, ''); }
+      };
+    }
+
+    /* ---------- Tableau de lignes (nom / quantité / prix) ----------
+       tableau()   valeur() -> [{nom, qte, pu}, …] */
+    function tableau() {
+      const el = html(`<div>
+        <div class="lt-head"><span>Nom</span><span>Quantité</span><span>Prix unitaire</span><span style="text-align:right">Total</span><span></span></div>
+        <div class="rows"></div>
+        <button type="button" class="btn ghost add">+ Ajouter une ligne</button>
+        <p class="total">Total : <strong>0,00 €</strong></p><p class="err" role="alert"></p></div>`);
+      const lignes = el.querySelector('.rows'), total = el.querySelector('strong'), msg = el.querySelector('.err');
+
+      // Lit une ligne du tableau -> { nom, qte, pu }
+      const lire = l => ({ nom: l.querySelector('.name').value.trim(), qte: l.querySelector('.qty').value, pu: l.querySelector('.price').value });
+      const remplie = l => l.nom || l.qte || l.pu;
+      const centimes = l => Math.round((+l.qte || 0) * (+l.pu || 0) * 100);
+
+      // Met à jour les totaux affichés
+      function recalculer() {
+        let somme = 0;
+        [...lignes.children].forEach(div => { const c = centimes(lire(div)); div.querySelector('.line').textContent = eur(c); somme += c; });
+        total.textContent = eur(somme);
+        total.classList.toggle('neg', somme < 0);
+        return somme;
+      }
+
+      // Contrôle tout le tableau ; renvoie le message d'erreur ('' si OK)
+      function message() {
+        const toutes = [...lignes.children].map(lire), utiles = toutes.filter(remplie), somme = recalculer();
+        const mauvaise = toutes.findIndex(l => remplie(l) && (!l.nom || !(+l.qte > 0) || l.pu === '' || isNaN(+l.pu)));
+        if (!utiles.length) return 'Ajoutez au moins une ligne avec un nom, une quantité et un prix unitaire.';
+        if (mauvaise >= 0) return `La ligne ${mauvaise + 1} est incomplète : il faut un nom, une quantité positive et un prix unitaire.`;
+        if (utiles.some(l => plusDeCentimes(+l.pu))) return 'Les prix unitaires doivent être exprimés au centime près (2 décimales maximum).';
+        if (somme <= 0) return 'Le total général doit être strictement positif (une ligne négative, comme une réduction, est acceptée).';
+        return '';
+      }
+      const valider = () => { msg.textContent = message(); return !msg.textContent; };
+
+      function ajouterLigne() {
+        const div = html(`<div class="lt-row">
+          <label><span>Nom</span><input type="text" class="name" maxlength="200" placeholder="Ex : Farine"></label>
+          <label><span>Quantité</span><input type="number" class="qty" step="any" inputmode="decimal" placeholder="1"></label>
+          <label><span>Prix unitaire (€)</span><input type="number" class="price" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+          <output class="line">0,00 €</output>
+          <button type="button" class="x" aria-label="Supprimer la ligne">×</button></div>`);
+        div.addEventListener('input', () => { recalculer(); if (msg.textContent) valider(); });
+        div.addEventListener('focusout', e => { if (!div.contains(e.relatedTarget) && remplie(lire(div))) valider(); });
+        div.querySelector('.x').onclick = () => {
+          if (lignes.children.length > 1) div.remove();                       // on garde toujours 1 ligne
+          else div.querySelectorAll('input').forEach(i => i.value = '');
+          recalculer();
+        };
+        lignes.append(div); recalculer();
+      }
+      el.querySelector('.add').onclick = ajouterLigne;
+      const vider = () => { lignes.innerHTML = ''; ajouterLigne(); msg.textContent = ''; };
+      ajouterLigne();
+
+      return { el, valider, vider, valeur: () => [...lignes.children].map(lire).filter(remplie) };
+    }
+
+    /* ---------- Dépôt de fichiers ----------
+       fichiers({ pdf:true })  -> un seul PDF
+       fichiers({ obligatoire:false }) -> plusieurs fichiers, facultatif
+       valeur() -> liste de File */
+    function fichiers({ pdf = false, obligatoire = true } = {}) {
+      let liste = [], avis = '';                // avis = fichiers refusés lors du dernier ajout
+      const el = html(`<div><label class="btn ghost">${pdf ? 'Choisir le PDF de la facture' : 'Ajouter des fichiers'}
+        <input type="file" hidden ${pdf ? 'accept="application/pdf,.pdf"' : 'multiple'}></label>
+        <ul class="files"></ul><p class="err" role="alert"></p></div>`);
+      const input = el.querySelector('input'), ul = el.querySelector('ul'), msg = el.querySelector('.err');
+
+      // Redessine la liste des fichiers choisis
+      function dessiner() {
         ul.innerHTML = '';
-        files.forEach((f, i) => {
-          const li = mk('<li><span></span><small></small><button type="button" class="x" aria-label="Retirer ce fichier">×</button></li>');
+        liste.forEach((f, i) => {
+          const li = html('<li><span></span><small></small><button type="button" class="x" aria-label="Retirer ce fichier">×</button></li>');
           li.querySelector('span').textContent = f.name;
           li.querySelector('small').textContent = (f.size / 1048576).toFixed(1) + ' Mo';
-          li.querySelector('button').onclick = () => { files.splice(i, 1); note = ''; draw(); if (err.textContent) run() };
+          li.querySelector('button').onclick = () => { liste.splice(i, 1); avis = ''; dessiner(); if (msg.textContent) valider(); };
           ul.append(li);
         });
       }
+
+      // Renvoie la raison du refus d'un fichier, ou '' s'il est accepté
+      const probleme = f =>
+        pdf && !/\.pdf$/i.test(f.name) ? `« ${f.name} » n'est pas un PDF : seule la facture au format PDF est acceptée.` :
+        !pdf && !EXT_OK.includes(extension(f.name)) ? `« ${f.name} » : ce format n'est pas accepté (images dont HEIC, PDF, Word, Excel ou texte).` :
+        !f.size ? `« ${f.name} » est vide.` :
+        f.size > MAX_BYTES ? `« ${f.name} » dépasse ${MAX_BYTES / 1048576} Mo.` : '';
+
       input.onchange = e => {
-        const notes = [], skipped = [];                              // plusieurs fichiers peuvent être refusés d'un coup
+        const refus = [], tropNombreux = [];
         for (const f of e.target.files) {
-          if (pdf && !/\.pdf$/i.test(f.name)) { notes.push(`« ${f.name} » n'est pas un PDF : seule la facture au format PDF est acceptée.`); continue }
-          if (!pdf && !EXT_OK.includes(extOf(f.name))) { notes.push(`« ${f.name} » : ce format n'est pas accepté (images dont HEIC, PDF, Word, Excel ou texte).`); continue }
-          if (!f.size) { notes.push(`« ${f.name} » est vide.`); continue }
-          if (f.size > MAX_BYTES) { notes.push(`« ${f.name} » dépasse ${MAX_BYTES / 1048576} Mo.`); continue }
-          if (pdf) { files = [f]; continue }                           // facture : un seul PDF
-          if (files.some(x => x.name === f.name && x.size === f.size)) continue;               // évite les doublons
-          if (files.length >= MAX_FILES) { skipped.push(`« ${f.name} »`); continue }
-          files.push(f);
+          const p = probleme(f);
+          if (p) { refus.push(p); continue; }
+          if (pdf) { liste = [f]; continue; }                                   // facture : un seul fichier
+          if (liste.some(x => x.name === f.name && x.size === f.size)) continue;   // doublon
+          if (liste.length >= MAX_FILES) { tropNombreux.push(`« ${f.name} »`); continue; }
+          liste.push(f);
         }
-        if (skipped.length) notes.push(`${MAX_FILES} fichiers maximum, non ajouté${skipped.length > 1 ? 's' : ''} : ${skipped.join(', ')}.`);
-        note = notes.join(' ');
-        e.target.value = ''; draw(); run();
+        if (tropNombreux.length) refus.push(`${MAX_FILES} fichiers maximum, non ajouté(s) : ${tropNombreux.join(', ')}.`);
+        avis = refus.join(' ');
+        e.target.value = '';
+        dessiner(); valider();
       };
-      function run() {
-        const m = note || (need && !files.length ? (pdf ? 'Ajoutez la facture au format PDF.' : 'Ajoutez au moins un justificatif (photo, PDF…).') : '');
-        err.textContent = m; root.classList.toggle('bad', !!m); return m;
+
+      function valider() {
+        msg.textContent = avis || (obligatoire && !liste.length
+          ? (pdf ? 'Ajoutez la facture au format PDF.' : 'Ajoutez au moins un justificatif (photo, PDF…).') : '');
+        return !msg.textContent;
       }
-      return { files: () => files, run: () => !run(), reset: () => { files = []; note = ''; draw(); err.textContent = '' } };
+      return { el, valider, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
     }
 
-    // Montant
-    function amount(root, label, errMsg, placeholder = '0,00', id = 'amount') {
-      root.innerHTML = `<label class="f" for="${id}"></label>
-        <input type="text" id="${id}" inputmode="decimal" autocomplete="off" aria-describedby="e-${id}">
-        <p class="err" id="e-${id}" role="alert"></p>`;
-      const lab = root.querySelector('label'),
-        input = root.querySelector('input'),
-        err = root.querySelector('.err');
+    /* ---------- Menu déroulant + « ajouter un nouveau » ----------
+       choixPersonne({ mot:'bénéficiaire', champs:[…] })
+       - Menu avec les personnes déjà connues, OU mini-formulaire pour en créer une.
+       - rafraichir(liste) remplit le menu.
+       - valeur() -> { beneficiaryId, newBeneficiary } (ce que le serveur attend) */
 
-      lab.textContent = label;
-      input.placeholder = placeholder;
-
-      const optional = !errMsg;                       // pas de message d'erreur = champ facultatif
-      const clean = () => input.value.trim().replace(',', '.');
-      const REGEX = /^\d+(\.\d{1,2})?$/;              // entier ou 1 à 2 décimales
-
-      function run() {
-        const raw = clean();
-        const ok = raw === '' ? optional : (REGEX.test(raw) && +raw > 0);
-        err.textContent = ok ? '' : errMsg;
-        if (raw === '' && optional) input.removeAttribute('aria-invalid');
-        else input.setAttribute('aria-invalid', ok ? 'false' : 'true');
-        return ok;
-      }
-
-      input.addEventListener('input', () => {
-        const v = input.value.replace(/[^\d.,]/g, '');          // ne garde que chiffres, virgule et point
-        if (v !== input.value) input.value = v;
-        if (err.textContent) run();
-      });
-      input.addEventListener('blur', run);
-
-      const value = () => clean() === '' ? null : +clean();                // euros (ex : 12.5) ou null
-      const cents = () => clean() === '' ? null : Math.round(+clean() * 100); // centimes (ex : 1250) ou null
-      const reset = () => { input.value = ''; err.textContent = ''; input.removeAttribute('aria-invalid') };
-
-      return { run, value, cents, reset };
-    }
-
-    // supprime les reponses d'une section
-  
-    /*=====================================================================
-        Outils Bénéficiarie/Préstataire
-      ===================================================================== */
-
-    // Un espace tous les 4 caractères (même règle que ibanFmt_ côté serveur)
+    // IBAN : espace tous les 4 caractères
     const fmtIban = s => s.replace(/\s/g, '').toUpperCase().slice(0, 34).replace(/(.{4})(?=.)/g, '$1 ');
     const IBAN_LEN = { FR: 27, MC: 27, BE: 16, DE: 22, ES: 24, IT: 27, LU: 20, CH: 21, NL: 18, PT: 25, GB: 22, IE: 22, AT: 20 };
-    // Clé de contrôle IBAN (modulo 97), copie de validIban_ côté serveur
+    // Vérifie la clé de contrôle de l'IBAN (modulo 97)
     function validIban(v) {
       const s = v.replace(/\s/g, '').toUpperCase();
       if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(s)) return false;
       if (IBAN_LEN[s.slice(0, 2)] && s.length !== IBAN_LEN[s.slice(0, 2)]) return false;
-      const digits = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, c => String(c.charCodeAt(0) - 55));
-      let rem = 0;
-      for (const d of digits) rem = (rem * 10 + +d) % 97;
-      return rem === 1;
+      const chiffres = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, c => String(c.charCodeAt(0) - 55));
+      let reste = 0;
+      for (const c of chiffres) reste = (reste * 10 + +c) % 97;
+      return reste === 1;
     }
 
-    let _bp = 0;   // compteur pour des id uniques si le composant est utilisé plusieurs fois
+    // Les champs du mini-formulaire. key = nom envoyé au serveur, req = message si vide,
+    // check = fonction qui renvoie un message d'erreur ('' si OK), def = valeur par défaut.
+    const checkIban = v => validIban(v) ? '' : 'Cet IBAN semble invalide : vérifiez chaque caractère (la clé de contrôle est incorrecte).';
+    const CHAMPS_BENEF = [
+      { key: 'prenom', label: 'Prénom associé au RIB du bénéficiaire', req: 'Indiquez le prénom associé au RIB.' },
+      { key: 'nom', label: 'Nom associé au RIB du bénéficiaire', req: 'Indiquez le nom associé au RIB.' },
+      { key: 'mail', label: 'Adresse mail du bénéficiaire (si possible Gmail)', type: 'email', check: v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? '' : 'Cette adresse mail ne semble pas valide.' },
+      { key: 'tel', label: 'Numéro de téléphone du bénéficiaire', type: 'tel', check: v => /^\+?[\d .-]{9,20}$/.test(v) ? '' : 'Ce numéro de téléphone ne semble pas valide.' },
+      { key: 'role', label: `Rôle dans l'AEn7 du bénéficiaire`, def: 'Membre AEn7' },
+      { key: 'iban', label: 'IBAN du bénéficiaire', req: `Indiquez l'IBAN du bénéficiaire.`, check: checkIban, ph: 'FR76 …' }
+    ];
+    const CHAMPS_PREST = [
+      { key: 'nom', label: 'Nom associé au RIB du prestataire', req: 'Indiquez le nom associé au RIB du prestataire.' },
+      { key: 'iban', label: 'IBAN du prestataire', req: `Indiquez l'IBAN du prestataire.`, check: checkIban, ph: 'FR76 …' }
+    ];
 
-    /**
-     * beneprest('mem-benef', 'Bénéficiaire')  ou  beneprest('mem-prest', 'Prestataire')
-     * Retourne { refresh(liste), run(), payload(), reset() }
-     */
-    function beneprest(rootOrId, libelle) {
-      const root = typeof rootOrId === 'string' ? $(rootOrId) : rootOrId;
-      const pres = /^prest/i.test(libelle.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));  // tolère « Préstataire »
-      const kind = libelle.toLowerCase();
-      const uid = 'bp' + (++_bp), T = 300;                       // T = durée de l'animation (ms), idem CSS
-      const MAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/, TEL_RE = /^\+?[\d .-]{9,20}$/;
-      let adding = false, list = [], timer = 0;
+    function choixPersonne({ mot, champs }) {
+      const id = nouvelId();
+      let ajout = false, liste = [];     // ajout = true quand on est en mode « nouveau »
 
-      // ---------- Squelette ----------
-      root.innerHTML = `
-        <h2></h2>
-        <p class="mut">Choisissez votre ${kind} uniquement si ses informations bancaires n'ont pas changé.</p>
+      const el = html(`<div>
+        <p class="mut">Choisissez votre ${mot} uniquement si ses informations bancaires n'ont pas changé.</p>
         <div class="slide pick"><div>
-          <label class="f" for="${uid}-sel">Choix du ${kind} :</label>
-          <select id="${uid}-sel" aria-describedby="${uid}-sel-err"></select>
-          <p class="err" id="${uid}-sel-err" role="alert"></p>
+          <label class="f" for="${id}">Choix du ${mot} :</label><select id="${id}"></select><p class="err" role="alert"></p>
         </div></div>
         <button type="button" class="btn ghost toggle"></button>
         <div class="slide form closed" inert><div>
           <p class="warn">Remplissez avec une attention toute particulière cette partie, svp.</p>
-        </div></div>`;
-      root.querySelector('h2').textContent = libelle;
-      const pick = root.querySelector('.pick'), form = root.querySelector('.form'),
-            sel = root.querySelector('select'), selErr = root.querySelector('.pick .err'),
-            tg = root.querySelector('.toggle'), box = form.firstElementChild;
+        </div></div></div>`);
+      const pick = el.querySelector('.pick'), form = el.querySelector('.form'), boite = form.firstElementChild;
+      const menu = el.querySelector('select'), msgMenu = el.querySelector('.pick .err'), bouton = el.querySelector('.toggle');
 
-      // ---------- Champs du mini-questionnaire ----------
-      const ibanCheck = v => validIban(v) ? '' : 'Cet IBAN semble invalide : vérifiez chaque caractère (la clé de contrôle est incorrecte).';
-      const FIELDS = pres ? [
-        { key: 'nom',  label: 'Nom associé au RIB du prestataire', req: 'Indiquez le nom associé au RIB du prestataire.' },
-        { key: 'iban', label: 'IBAN du prestataire', req: `Indiquez l'IBAN du prestataire.`, check: ibanCheck, ph: 'FR76 …' }
-      ] : [
-        { key: 'prenom', label: 'Prénom associé au RIB du bénéficiaire', req: 'Indiquez le prénom associé au RIB.' },
-        { key: 'nom',    label: 'Nom associé au RIB du bénéficiaire', req: 'Indiquez le nom associé au RIB.' },
-        { key: 'mail',   label: 'Adresse mail du bénéficiaire (si possible Gmail)', type: 'email',
-          check: v => MAIL_RE.test(v) ? '' : 'Cette adresse mail ne semble pas valide.' },
-        { key: 'tel',    label: 'Numéro de téléphone du bénéficiaire', type: 'tel',
-          check: v => TEL_RE.test(v) ? '' : 'Ce numéro de téléphone ne semble pas valide.' },
-        { key: 'role',   label: `Rôle dans l'AEn7 du bénéficiaire`, def: 'Membre AEn7' },
-        { key: 'iban',   label: 'IBAN du bénéficiaire', req: `Indiquez l'IBAN du bénéficiaire.`, check: ibanCheck, ph: 'FR76 …' }
-      ];
+      // --- Construction du mini-formulaire à partir de la liste « champs » ---
+      const saisies = {}, msgs = {};
+      champs.forEach(c => {
+        const w = html(`<div><label class="f"></label><input type="${c.type || 'text'}" autocomplete="off" maxlength="${c.key === 'iban' ? 42 : 200}"><p class="err" role="alert"></p></div>`);
+        const input = w.querySelector('input');
+        w.querySelector('label').textContent = c.label;
+        input.value = c.def || ''; input.placeholder = c.ph || '';
+        saisies[c.key] = input; msgs[c.key] = w.querySelector('.err');
 
-      const inputs = {}, errs = {};
-      FIELDS.forEach(f => {
-        const w = mk(`<div><label class="f" for="${uid}-${f.key}"></label>
-          <input type="${f.type || 'text'}" id="${uid}-${f.key}" autocomplete="off" maxlength="${f.key === 'iban' ? 42 : 200}" aria-describedby="${uid}-${f.key}-err">
-          <p class="err" id="${uid}-${f.key}-err" role="alert"></p></div>`);
-        const el = w.querySelector('input');
-        w.querySelector('label').textContent = f.label;
-        el.value = f.def || ''; el.placeholder = f.ph || '';
-        inputs[f.key] = el; errs[f.key] = w.querySelector('.err');
-
-        if (f.key === 'iban') el.addEventListener('input', () => {   // reformate en gardant le curseur au bon endroit
-          const n = el.value.slice(0, el.selectionStart).replace(/\s/g, '').length;
-          el.value = fmtIban(el.value);
-          let i = 0, c = 0; while (i < el.value.length && c < n) { if (el.value[i] !== ' ') c++; i++ }
-          el.setSelectionRange(i, i);
+        if (c.key === 'iban') input.addEventListener('input', () => {     // met en forme l'IBAN en gardant le curseur
+          const n = input.value.slice(0, input.selectionStart).replace(/\s/g, '').length;
+          input.value = fmtIban(input.value);
+          let i = 0, vus = 0;
+          while (i < input.value.length && vus < n) { if (input.value[i] !== ' ') vus++; i++; }
+          input.setSelectionRange(i, i);
         });
-        el.addEventListener('blur', () => { if (adding) checkField(f) });   // pas d'erreur quand on quitte le mode « nouveau »
-        el.addEventListener('input', () => { if (errs[f.key].textContent) checkField(f) });
-        box.append(w);
+        input.addEventListener('blur', () => { if (ajout) verifierChamp(c); });
+        input.addEventListener('input', () => { if (msgs[c.key].textContent) verifierChamp(c); });
+        boite.append(w);
       });
 
-      // ---------- Validation ----------
-      function checkField(f) {
-        const el = inputs[f.key], v = el.value.trim();
-        const m = !v ? (f.req || '') : (f.check ? f.check(v) : '');
-        errs[f.key].textContent = m; el.classList.toggle('bad', !!m);
-        m ? el.setAttribute('aria-invalid', 'true') : el.removeAttribute('aria-invalid');
-        return m;
+      // --- Validation ---
+      function verifierChamp(c) {
+        const v = saisies[c.key].value.trim();
+        const m = !v ? (c.req || '') : (c.check ? c.check(v) : '');
+        return montrerErreur(saisies[c.key], msgs[c.key], m);
       }
-      function checkSelect() {
-        const m = sel.value ? '' : `Choisissez un ${kind} dans la liste ou ajoutez-en un nouveau.`;
-        selErr.textContent = m; sel.classList.toggle('bad', !!m);
-        m ? sel.setAttribute('aria-invalid', 'true') : sel.removeAttribute('aria-invalid');
-        return m;
-      }
-      sel.addEventListener('change', checkSelect);
+      const verifierMenu = () => montrerErreur(menu, msgMenu, menu.value ? '' : `Choisissez un ${mot} dans la liste ou ajoutez-en un nouveau.`);
+      menu.addEventListener('change', verifierMenu);
 
-      function clearErrors() {
-        selErr.textContent = ''; sel.classList.remove('bad'); sel.removeAttribute('aria-invalid');
-        FIELDS.forEach(f => { errs[f.key].textContent = ''; inputs[f.key].classList.remove('bad'); inputs[f.key].removeAttribute('aria-invalid') });
+      function valider() {
+        if (!ajout) { const ok = verifierMenu(); if (!ok) menu.focus(); return ok; }
+        const mauvais = champs.filter(c => !verifierChamp(c));          // filter : tous les champs sont testés
+        if (mauvais.length) saisies[mauvais[0].key].focus();
+        return !mauvais.length;
       }
 
-      // Retourne true si tout est valide (sinon affiche les erreurs et place le focus sur la première)
-      function run() {
-        if (!adding) { const m = checkSelect(); if (m) sel.focus(); return !m }
-        const bad = FIELDS.filter(f => checkField(f));
-        if (bad.length) inputs[bad[0].key].focus();
-        return !bad.length;
+      // --- Bascule entre « menu » et « nouveau » ---
+      function mode(nouveau) {
+        ajout = nouveau;
+        pick.classList.toggle('closed', nouveau); pick.toggleAttribute('inert', nouveau);
+        form.classList.toggle('closed', !nouveau); form.toggleAttribute('inert', !nouveau);
+        bouton.textContent = nouveau ? `Choisir un ${mot} existant` : `+ Ajouter un ${mot}`;
+        bouton.setAttribute('aria-expanded', nouveau);
+        montrerErreur(menu, msgMenu, '');
+        champs.forEach(c => montrerErreur(saisies[c.key], msgs[c.key], ''));
       }
+      bouton.onclick = () => mode(!ajout);
 
-      // ---------- Bascule menu <-> nouveau ----------
-      function setMode(on, animate = true) {
-        adding = on;
-        pick.classList.toggle('closed', on); pick.toggleAttribute('inert', on);          // inert : plus de focus ni de lecture d'écran
-        form.classList.toggle('closed', !on); form.toggleAttribute('inert', !on);
-        tg.textContent = on ? `Choisir un ${kind} existant` : `+ Ajouter un ${kind}`;
-        tg.setAttribute('aria-expanded', on);
-        clearErrors();
-        clearTimeout(timer);
-        if (!animate) return;
-        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-        timer = setTimeout(() => {                                                       // on attend la fin du déploiement
-          if (on) inputs[FIELDS[0].key].focus({ preventScroll: true });
-          root.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: on ? 'start' : 'nearest' });
-        }, reduce ? 0 : T);
-      }
-      tg.onclick = () => setMode(!adding);
-
-      // ---------- API ----------
-      // (Re)remplit le menu ; si la liste est vide, on ouvre directement la création (et on cache le bouton)
-      function refresh(items) {
-        list = items || [];
-        sel.innerHTML = '<option value="">— Choisir —</option>';
-        list.forEach(b => {
+      // --- Fonctions publiques ---
+      function rafraichir(items) {
+        liste = items || [];
+        menu.innerHTML = '<option value="">— Choisir —</option>';
+        liste.forEach(b => {
           const o = document.createElement('option');
           o.value = b.id;
-          o.textContent = ((b.first + ' ' + b.last).trim() || '(sans nom)') + (b.iban ? ' (' + b.iban + ')' : '');   // l'IBAN est déjà masqué par le serveur
-          sel.append(o);
+          o.textContent = ((b.first + ' ' + b.last).trim() || '(sans nom)') + (b.iban ? ' (' + b.iban + ')' : '');
+          menu.append(o);
         });
-        tg.classList.toggle('hidden', !list.length);
-        setMode(!list.length, false);
+        bouton.classList.toggle('hidden', !liste.length);     // liste vide : on va direct au mode « nouveau »
+        mode(!liste.length);
       }
-
-      // Données à envoyer au serveur (clés lues par planBeneficiary_)
-      function payload() {
-        if (!adding) return { beneficiaryId: sel.value, newBeneficiary: {} };
-        const g = k => inputs[k] ? inputs[k].value.trim() : '';       // prestataire : prenom/mail/tel/role partent vides
+      function valeur() {
+        if (!ajout) return { beneficiaryId: menu.value, newBeneficiary: {} };
+        const g = k => saisies[k] ? saisies[k].value.trim() : '';      // un champ absent (ex : prénom d'un prestataire) = ''
         return { beneficiaryId: '', newBeneficiary: { prenom: g('prenom'), nom: g('nom'), mail: g('mail'), tel: g('tel'), role: g('role'), iban: g('iban').replace(/\s/g, '').toUpperCase() } };
       }
-
-      function reset() {
-        FIELDS.forEach(f => inputs[f.key].value = f.def || '');
-        sel.selectedIndex = 0; setMode(!list.length, false);
+      function vider() {
+        champs.forEach(c => saisies[c.key].value = c.def || '');
+        menu.selectedIndex = 0; mode(!liste.length);
       }
 
-      refresh([]);
-      return { refresh, run, payload, reset };
+      rafraichir([]);
+      return { el, valider, valeur, vider, rafraichir };
     }
-
-    /*=====================================================================
-        Formulaire
-      ===================================================================== */
-    // Structure : 
-    const SEC = { NDF: ['s2', 's5'], DSH: ['s3', 's5'], FAC: ['s4', 's6'] };
-
-    // section 1
-    const label = "Description courte du virement";
-    const helpLabel = "Ex : Achat de matériel pour la soirée du 12 mars";
-    const errLabel = "Ajoutez une courte description du virement.";
-    const tDesc = Description($('s1').querySelector('#label'), label, helpLabel, errLabel, 300);
-
-    // Choix du type
-
-    document.querySelectorAll('input[name=type]').forEach(r =>
-      r.addEventListener('click', () => {
-        if (r.value === type) r.checked = false;
-        chose_type(r.checked ? r.value : null);
-        if (type) $(SEC[type][0]).scrollIntoView({ behavior: 'smooth', block: 'start' });
-      })
-    );
-
-    // section 2 ndf
-    const tNDF = lineTable($('ndf-table'));
-    const fNDF = fileDrop($('ndf-files'));
-
-    // section 3 dsh
-    const tDescDSH = Description($('s3').querySelector('#DescDSH'),
-      'Raison de la non obtention d\'un justificatif',
-      'Ex : J\'ai acheté mon article sur Vinted, un site ne fournissant pas de facture',
-      'Ajoutez la raison de non obtention de votre justificatif.',
-      1000, 'reason'
-    );
-    const tDSH = lineTable($('dsh-table'));
-    const fDSH = fileDrop($('dsh-files'), { need: false });
-
-    // Section 4 fac
-    const tlibelleFac = Description($('s4').querySelector('#libelleFac'),
-      'Libellé du virement (si demandé par le prestataire)',
-      'fac - 260931',
-      '', 140, 'libelleFac-in'
-    );
-    const tAmountFac = amount($('s4').querySelector('#montantFac'),
-      'Montant de la facture (€)',
-      'Indiquez un montant strictement positif, avec 2 décimales maximum.'
-    );
-    const fFac = fileDrop($('fac-files'), { pdf: true });
-
-    //section 56
-    const bMem = beneprest('mem-benef', 'Bénéficiaire');
-    const bFac = beneprest('mem-prest', 'Prestataire');
-    
-    const SECTIONS = ['s2', 's3', 's4', 's5', 's6'];
-    const RESETS = {
-      s2: () => { tNDF.reset(); fNDF.reset(); },
-      s3: () => { tDescDSH.reset(); tDSH.reset(); fDSH.reset(); },
-      s4: () => { tlibelleFac.reset(); tAmountFac.reset(); fFac.reset(); },
-      s5: () => bMem.reset(),
-      s6: () => bFac.reset()
-    };
-    function chose_type(valeur) {
-      type = valeur || '';
-      SECTIONS.forEach(s => {
-        const show = !!valeur && SEC[valeur].includes(s), el = $(s);
-        if (!show && !el.classList.contains('hidden')) RESETS[s]();   // on ne vide que ce qui était affiché
-        el.classList.toggle('hidden', !show);
-      });
-      $('sendBar').classList.toggle('hidden', !valeur);
-      $('e-typeBox').textContent = ''; $('sendErr').textContent = '';
-    }
-
-    function refreshLists() { bMem.refresh(benefList); bFac.refresh(prestList); }
 
     /* =====================================================================
-      BLOC D'ENVOI : à coller à la fin du <script>, juste après refreshLists().
-      Il REMPLACE les 2 lignes « // À l'envoi : » et « $('form').addEventListener('submit', …) ».
-      Prérequis : lineTable et fileDrop doivent exposer run (voir la réponse).
-      ===================================================================== */
+       LES CARTES
+       carte('Titre', [ composants ou éléments… ], 'note facultative')
+       - Un composant (avec valider/vider) est repéré automatiquement :
+         il sera validé à l'envoi et vidé quand la carte disparaît.
+       ===================================================================== */
+
+    const sousTitre = txt => html(`<h3>${txt}</h3>`);
+    const aide = txt => html(`<p class="mut">${txt}</p>`);
+
+    function carte(titre, contenu, note = '') {
+      const el = html('<section class="card hidden"><h2></h2></section>');
+      el.querySelector('h2').textContent = titre;
+      if (note) el.append(html('<p class="note"></p>')), el.lastChild.textContent = note;
+      contenu.forEach(x => el.append(x.el || x));                      // composant -> son .el ; sinon l'élément lui-même
+      return { el, composants: contenu.filter(x => x.valider) };
+    }
+
+    /* =====================================================================
+       LE FORMULAIRE
+       ===================================================================== */
+
+    // --- Commun à tous les types ---
+    const description = zoneTexte({
+      label: 'Description courte du virement',
+      placeholder: 'Ex : Achat de matériel pour la soirée du 12 mars',
+      erreur: 'Ajoutez une courte description du virement.', max: 300
+    });
+
+    // --- Composants propres à chaque type ---
+    const tableauNDF = tableau();
+    const fichiersNDF = fichiers();
+
+    const raisonDSH = zoneTexte({
+      label: `Raison de la non obtention d'un justificatif`,
+      placeholder: `Ex : J'ai acheté mon article sur Vinted, un site ne fournissant pas de facture`,
+      erreur: 'Ajoutez la raison de non obtention de votre justificatif.', max: 1000
+    });
+    const tableauDSH = tableau();
+    const fichiersDSH = fichiers({ obligatoire: false });
+
+    const libelleFac = zoneTexte({ label: 'Libellé du virement (si demandé par le prestataire)', placeholder: 'fac - 260931', max: 140 });
+    const montantFac = montant({ label: 'Montant de la facture (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
+    const fichierFac = fichiers({ pdf: true });
+
+    const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
+    const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
+
+    // --- Les cartes ---
+    const AIDE_FICHIERS = 'Images (HEIC, PDF, Word, Excel, texte...) : 10 fichiers maximum, 10 Mo chacun.';
+
+    const carteNDF = carte('Note De Frais', [
+      sousTitre('Tableau de la NDF'), tableauNDF,
+      sousTitre('Justificatifs'), aide(AIDE_FICHIERS), fichiersNDF
+    ], 'Une NDF permet UNIQUEMENT de rembourser un membre de l\'AEn7. Les tickets de carte, les screens de compte bancaire ou les « je te jure j\'ai payé » ne permettent pas de créer une NDF.');
+
+    const carteDSH = carte('Déclaration sur l\'honneur', [
+      raisonDSH,
+      sousTitre('Tableau de la DSH'), tableauDSH,
+      sousTitre('Justificatifs (facultatif)'), aide(AIDE_FICHIERS), fichiersDSH
+    ]);
+
+    const carteFAC = carte('Facture', [
+      libelleFac, montantFac,
+      sousTitre('Facture (PDF uniquement, 1 fichier, 10 Mo maximum)'), fichierFac
+    ], 'Attention : un devis (même signé) n\'est pas une facture. Tout prestataire a l\'obligation de vous fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club pour garder une bonne trace de votre trésorerie.');
+
+    const carteBenef = carte('Bénéficiaire', [listeBenef]);
+    const cartePrest = carte('Prestataire', [listePrest]);
+
+    // --- LA table de correspondance : pour chaque type, ce qu'on affiche et ce qu'on envoie ---
+    //   cartes     : les sections affichées
+    //   fichiers   : le composant dont on envoie les fichiers
+    //   personne   : le composant bénéficiaire/prestataire
+    //   donnees()  : les champs spécifiques envoyés au serveur
+    const TYPES = {
+      NDF: {
+        libelle: 'Une Note De Frais (NDF)',
+        cartes: [carteNDF, carteBenef], fichiers: fichiersNDF, personne: listeBenef,
+        donnees: () => ({ table: tableauNDF.valeur(), reason: '' })
+      },
+      DSH: {
+        libelle: 'Une Déclaration Sur l\'Honneur (DSH)',
+        cartes: [carteDSH, carteBenef], fichiers: fichiersDSH, personne: listeBenef,
+        donnees: () => ({ table: tableauDSH.valeur(), reason: raisonDSH.valeur() })
+      },
+      FAC: {
+        libelle: 'Une Facture (FAC)',
+        cartes: [carteFAC, cartePrest], fichiers: fichierFac, personne: listePrest,
+        donnees: () => ({ amount: montantFac.valeur(), label: libelleFac.valeur() })
+      }
+    };
+    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteBenef, cartePrest];
+
+    /* =====================================================================
+       PARTIE 6 — AFFICHAGE : choix du type et montage de la page
+       ===================================================================== */
+
+    let type = '';   // 'NDF', 'DSH', 'FAC' ou ''
+
+    // Affiche les cartes du type choisi, cache (et vide) les autres
+    function choisirType(valeur) {
+      type = valeur || '';
+      const voulues = type ? TYPES[type].cartes : [];
+      TOUTES_LES_CARTES.forEach(c => {
+        const afficher = voulues.includes(c);
+        if (!afficher && !c.el.classList.contains('hidden')) c.composants.forEach(x => x.vider());   // on vide ce qui disparaît
+        c.el.classList.toggle('hidden', !afficher);
+      });
+      $('sendBar').classList.toggle('hidden', !type);
+      $('e-type').textContent = ''; $('sendErr').textContent = '';
+    }
+
+    // Carte 1 : description + boutons radio (fabriqués depuis TYPES)
+    const carteDebut = html('<section class="card"></section>');
+    const boiteType = html('<fieldset><legend>Mon justificatif est :</legend></fieldset>');
+    Object.entries(TYPES).forEach(([code, t]) => {
+      const choix = html(`<label class="choice"><input type="radio" name="type" value="${code}"> ${t.libelle}</label>`);
+      choix.querySelector('input').addEventListener('click', e => {
+        if (code === type) e.target.checked = false;            // recliquer = désélectionner
+        choisirType(e.target.checked ? code : null);
+        if (type) TYPES[type].cartes[0].el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      boiteType.append(choix);
+    });
+    carteDebut.append(description.el, boiteType, html('<p class="err" id="e-type" role="alert"></p>'));
+
+    // On pose le tout dans la page, dans l'ordre
+    $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
+
+    /* =====================================================================
+       PARTIE 7 — ENVOI
+       ===================================================================== */
 
     $('form').addEventListener('submit', e => e.preventDefault());
 
-    const uploaded = new Map();   // File -> fileId : un nouvel essai ne renvoie pas les fichiers déjà envoyés
+    const dejaEnvoyes = new Map();   // File -> fileId : un nouvel essai ne renvoie pas les fichiers déjà partis
 
-    const fileToB64 = f => new Promise((ok, ko) => {
+    const fichierEnBase64 = f => new Promise((ok, ko) => {
       const r = new FileReader();
-      r.onload = () => ok(r.result.split(',')[1]);               // base64 brut, sans « data:…; »
+      r.onload = () => ok(r.result.split(',')[1]);
       r.onerror = () => ko(Error('Lecture du fichier impossible.'));
       r.readAsDataURL(f);
     });
 
-    function validateAll() {
-      const b = type === 'FAC' ? bFac : bMem;
-      const checks = [tDesc.run];
-      if (type === 'NDF') checks.push(tNDF.run, fNDF.run);
-      if (type === 'DSH') checks.push(tDescDSH.run, tDSH.run, fDSH.run);
-      if (type === 'FAC') checks.push(tlibelleFac.run, tAmountFac.run, fFac.run);
-      checks.push(b.run);
-      return checks.map(f => f()).every(Boolean);                // map : tous les run() s'exécutent, toutes les erreurs s'affichent
+    // Valide la description + tous les composants des cartes affichées
+    function toutValider() {
+      const aValider = [description, ...TYPES[type].cartes.flatMap(c => c.composants)];
+      return aValider.map(x => x.valider()).every(Boolean);     // map : toutes les erreurs s'affichent d'un coup
     }
 
-    const progress = (msg, pct) => { $('sendMsg').textContent = msg; $('barFill').style.width = pct + '%' };
-    let sending = false;
+    const progression = (msg, pct) => { $('sendMsg').textContent = msg; $('barFill').style.width = pct + '%'; };
+    let enCours = false;
 
     $('send').onclick = async () => {
-      if (sending) return;
+      if (enCours) return;
       $('sendErr').textContent = '';
 
-      // --- 1. Validation (toute erreur est affichée sous le bouton, jamais avalée) ---
-      try {
-        if (!type) { $('e-typeBox').textContent = 'Choisissez le type de justificatif.'; return; }
-        if (!validateAll()) {
-          $('sendErr').textContent = 'Certains champs sont à corriger (messages en rouge).';
-          (document.querySelector('#form .err:not(:empty)') || $('sendErr')).scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return;
-        }
-      } catch (e) {
-        console.error(e);
-        $('sendErr').textContent = 'Erreur dans le formulaire : ' + e.message;
+      // 1. Validation
+      if (!type) { $('e-type').textContent = 'Choisissez le type de justificatif.'; return; }
+      if (!toutValider()) {
+        $('sendErr').textContent = 'Certains champs sont à corriger (messages en rouge).';
+        (document.querySelector('#form .err:not(:empty)') || $('sendErr')).scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
 
-      // --- 2. Envoi ---
-      sending = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progress('Préparation…', 5);
+      // 2. Envoi : d'abord les fichiers un par un, puis la demande
+      enCours = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progression('Préparation…', 5);
       try {
-        const files = ({ NDF: fNDF, DSH: fDSH, FAC: fFac })[type].files(), fileIds = [];
-        for (let i = 0; i < files.length; i++) {
-          const f = files[i];
-          progress(`Envoi du fichier ${i + 1}/${files.length}…`, 10 + 80 * i / files.length);
-          if (!uploaded.has(f)) uploaded.set(f, (await call({ action: 'upload', type, reqId, name: f.name, data: await fileToB64(f) })).fileId);
-          fileIds.push(uploaded.get(f));
+        const t = TYPES[type], fichiersAEnvoyer = t.fichiers.valeur(), fileIds = [];
+        for (let i = 0; i < fichiersAEnvoyer.length; i++) {
+          const f = fichiersAEnvoyer[i];
+          progression(`Envoi du fichier ${i + 1}/${fichiersAEnvoyer.length}…`, 10 + 80 * i / fichiersAEnvoyer.length);
+          if (!dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', type, reqId, name: f.name, data: await fichierEnBase64(f) })).fileId);
+          fileIds.push(dejaEnvoyes.get(f));
         }
-        progress('Enregistrement de la demande…', 92);
-        const b = type === 'FAC' ? bFac : bMem;
+        progression('Enregistrement de la demande…', 92);
         await call({
-          action: 'submit', type, reqId, description: tDesc.value(), fileIds, ...b.payload(),
-          ...(type === 'FAC'
-            ? { amount: tAmountFac.value(), label: tlibelleFac.value() }
-            : { table: (type === 'NDF' ? tNDF : tDSH).data(), reason: type === 'DSH' ? tDescDSH.value() : '' })
+          action: 'submit', type, reqId, description: description.valeur(), fileIds,
+          ...t.personne.valeur(),     // beneficiaryId + newBeneficiary
+          ...t.donnees()              // champs propres au type
         });
         $('doneText').textContent = 'Votre demande de virement a bien été enregistrée.';
         $('form').classList.add('hidden'); $('done').classList.remove('hidden'); window.scrollTo({ top: 0 });
       } catch (e) {
         console.error(e);
-        if (e.code === 'AUTH') {   // jeton Google expiré (~1 h) : on garde le formulaire et on propose de se reconnecter
+        if (e.code === 'AUTH') {    // jeton Google expiré (~1 h)
           $('sendErr').textContent = 'Votre session Google a expiré : reconnectez-vous ci-dessous, puis cliquez de nouveau sur « Envoyer ».';
           google.accounts.id.renderButton($('resignin'), { theme: 'outline', size: 'large' });
         } else $('sendErr').textContent = e.message;
       } finally {
-        sending = false; $('send').disabled = false; $('overlay').classList.add('hidden');
+        enCours = false; $('send').disabled = false; $('overlay').classList.add('hidden');
       }
     };
 
+    // « Faire une autre demande »
     $('again').onclick = () => {
-      reqId = makeReqId();        // sinon le serveur répond « duplicate » et n'enregistre rien
-      uploaded.clear();
+      reqId = makeReqId();          // sinon le serveur répond « duplicate »
+      dejaEnvoyes.clear();
       document.querySelectorAll('input[name=type]').forEach(r => r.checked = false);
-      chose_type(null);
-      tDesc.reset();
+      choisirType(null);
+      description.vider();
       $('done').classList.add('hidden'); $('form').classList.remove('hidden'); window.scrollTo({ top: 0 });
     };
-
   </script>
 </body>
 
