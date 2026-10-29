@@ -712,6 +712,7 @@
     // Affiche les cartes du type choisi, cache (et vide) les autres
     function choisirType(valeur) {
       type = valeur || '';
+      boiteDesc.classList.toggle('hidden', !type);
       const voulues = type ? TYPES[type].cartes : [];
       TOUTES_LES_CARTES.forEach(c => {
         const afficher = voulues.includes(c);
@@ -737,6 +738,13 @@
 
     // On pose le tout dans la page, dans l'ordre
     $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
+    const eType = html('<p class="err" id="e-type" role="alert"></p>');
+    carteDebut.append(boiteType, eType);
+
+    // La description est commune à tous les types : visible seulement quand un type est choisi
+    const boiteDesc = description.el;
+    boiteDesc.classList.add('hidden');
+    carteDebut.append(boiteDesc);
 
     /* =====================================================================
        PARTIE 7 — ENVOI
