@@ -8,434 +8,93 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     /* ============ 1. THÈME : les couleurs ============ */
-    /* --pri = violet de l'association ; --pri2 = violet foncé (texte sur fond clair, meilleur contraste) */
-    :root {
-      --pri: #A569BD;
-      --pri2: #6C3483;
-      --pri-lt: #F6F0F9;
-      --bg: #fff;
-      --card: #fff;
-      --bd: #d9d9d9;
-      --txt: #222;
-      --mut: #666;
-      --err: #b3261e;
-      --ok: #1a7f4b
-    }
-
-    * {
-      box-sizing: border-box;
-      border-radius: 0
-    }
-
-    /* aucun arrondi nulle part */
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--txt);
-      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif
-    }
-
-    .hidden {
-      display: none !important
-    }
+    /* --pri = violet de l'association ; --pri2 = violet foncé (texte sur fond clair) */
+    :root { --pri:#A569BD; --pri2:#6C3483; --pri-lt:#F6F0F9; --bg:#fff; --card:#fff; --bd:#d9d9d9; --txt:#222; --mut:#666; --err:#b3261e; --ok:#1a7f4b }
+    * { box-sizing:border-box; border-radius:0 }   /* aucun arrondi nulle part */
+    body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif }
+    .hidden { display:none !important }
 
     /* ============ 2. EN-TÊTE (logo + titre) ============ */
-    .hero {
-      text-align: center;
-      padding: 2rem 1rem 1.5rem;
-      border-bottom: 4px solid var(--pri)
-    }
-
-    .hero img {
-      height: 80px;
-      max-width: 80%;
-      object-fit: contain;
-      margin-bottom: .8rem
-    }
-
-    .hero h1 {
-      margin: 0;
-      font-size: 1.8rem;
-      font-weight: 600
-    }
-
-    .hero p {
-      max-width: 640px;
-      margin: .6rem auto 0;
-      color: var(--mut)
-    }
-
-    main {
-      max-width: 760px;
-      margin: 1.5rem auto 2rem;
-      padding: 0 1rem
-    }
+    .hero { text-align:center; padding:2rem 1rem 1.5rem; border-bottom:4px solid var(--pri) }
+    .hero img { height:80px; max-width:80%; object-fit:contain; margin-bottom:.8rem }
+    .hero h1 { margin:0; font-size:1.8rem; font-weight:600 }
+    .hero p { max-width:640px; margin:.6rem auto 0; color:var(--mut) }
+    main { max-width:760px; margin:1.5rem auto 2rem; padding:0 1rem }
 
     /* ============ 3. SECTIONS ============ */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--bd);
-      border-top: 3px solid var(--pri);
-      padding: 1.2rem 1.4rem;
-      margin-bottom: 1.2rem
-    }
-
-    .card h2 {
-      margin: 0 0 .4rem;
-      font-size: 1.25rem;
-      font-weight: 600
-    }
-
-    .card h3 {
-      margin: 1.4rem 0 .3rem;
-      font-size: 1.02rem;
-      font-weight: 600
-    }
-
-    .tag {
-      display: block;
-      font-size: .78rem;
-      font-weight: 600;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--pri2);
-      margin-bottom: .2rem
-    }
-
-    .mut {
-      color: var(--mut);
-      font-size: .92rem;
-      margin: .2rem 0 .6rem
-    }
-
-    .warn {
-      border: 1px solid var(--pri);
-      background: var(--pri-lt);
-      padding: .7rem .9rem;
-      font-weight: 600;
-      margin: 0 0 1rem
-    }
-
-    .note {
-      background: var(--pri-lt);
-      border-left: 3px solid var(--pri);
-      padding: .6rem .9rem;
-      margin: .6rem 0
-    }
+    .card { background:var(--card); border:1px solid var(--bd); border-top:3px solid var(--pri); padding:1.2rem 1.4rem; margin-bottom:1.2rem }
+    .card h2 { margin:0 0 .4rem; font-size:1.25rem; font-weight:600 }
+    .card h3 { margin:1.4rem 0 .3rem; font-size:1.02rem; font-weight:600 }
+    .tag { display:block; font-size:.78rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--pri2); margin-bottom:.2rem }
+    .mut { color:var(--mut); font-size:.92rem; margin:.2rem 0 .6rem }
+    .warn { border:1px solid var(--pri); background:var(--pri-lt); padding:.7rem .9rem; font-weight:600; margin:0 0 1rem }
+    .note { background:var(--pri-lt); border-left:3px solid var(--pri); padding:.6rem .9rem; margin:.6rem 0 }
 
     /* ============ 4. CHAMPS + MESSAGES D'ERREUR ============ */
-    label.f {
-      display: block;
-      margin: 1rem 0 .25rem;
-      font-weight: 600
-    }
-
-    input[type=text],
-    input[type=email],
-    input[type=tel],
-    input[type=number],
-    select,
-    textarea {
-      width: 100%;
-      padding: .55rem .65rem;
-      border: 1px solid #bbb;
-      font: inherit;
-      background: #fff;
-      color: var(--txt)
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      outline: 2px solid var(--pri);
-      outline-offset: 0;
-      border-color: var(--pri)
-    }
-
-    .bad {
-      border-color: var(--err) !important
-    }
-
-    /* champ en erreur */
-    .err {
-      color: var(--err);
-      font-size: .88rem;
-      min-height: 1.1em;
-      margin: .25rem 0 0
-    }
-
-    /* message sous le champ */
-    fieldset {
-      border: 0;
-      padding: 0;
-      margin: 1rem 0 0
-    }
-
-    legend {
-      font-weight: 600;
-      padding: 0 0 .3rem
-    }
-
-    .choice {
-      display: flex;
-      gap: .7rem;
-      align-items: center;
-      border: 1px solid var(--bd);
-      padding: .65rem .9rem;
-      margin: .4rem 0;
-      cursor: pointer
-    }
-
-    .choice input {
-      accent-color: var(--pri2)
-    }
-
-    .choice:has(input:checked) {
-      border-color: var(--pri);
-      background: var(--pri-lt)
-    }
+    label.f { display:block; margin:1rem 0 .25rem; font-weight:600 }
+    .req { color:var(--err); font-weight:700 }   /* l'astérisque des questions obligatoires */
+    input[type=text], input[type=email], input[type=tel], input[type=number], select, textarea {
+      width:100%; padding:.55rem .65rem; border:1px solid #bbb; font:inherit; background:#fff; color:var(--txt) }
+    input:focus, select:focus, textarea:focus { outline:2px solid var(--pri); outline-offset:0; border-color:var(--pri) }
+    .bad { border-color:var(--err) !important }                        /* champ en erreur */
+    .err { color:var(--err); font-size:.88rem; min-height:1.1em; margin:.25rem 0 0 }   /* message sous le champ */
+    fieldset { border:0; padding:0; margin:1rem 0 0 }
+    legend { font-weight:600; padding:0 0 .3rem }
+    .choice { display:flex; gap:.7rem; align-items:center; border:1px solid var(--bd); padding:.65rem .9rem; margin:.4rem 0; cursor:pointer }
+    .choice input { accent-color:var(--pri2) }
+    .choice:has(input:checked) { border-color:var(--pri); background:var(--pri-lt) }
 
     /* ============ 5. BOUTONS ============ */
-    .btn {
-      display: inline-block;
-      border: 1px solid var(--pri);
-      padding: .55rem 1.1rem;
-      font: inherit;
-      font-weight: 600;
-      cursor: pointer;
-      background: var(--pri);
-      color: #fff
-    }
-
-    .btn.ghost {
-      background: #fff;
-      color: var(--pri2)
-    }
-
-    .btn:hover {
-      background: var(--pri2);
-      border-color: var(--pri2);
-      color: #fff
-    }
-
-    .btn:disabled {
-      opacity: .5;
-      cursor: wait
-    }
-
-    .btn.big {
-      width: 100%;
-      padding: .85rem;
-      font-size: 1.05rem
-    }
+    .btn { display:inline-block; border:1px solid var(--pri); padding:.55rem 1.1rem; font:inherit; font-weight:600; cursor:pointer; background:var(--pri); color:#fff }
+    .btn.ghost { background:#fff; color:var(--pri2) }
+    .btn:hover { background:var(--pri2); border-color:var(--pri2); color:#fff }
+    .btn:disabled { opacity:.5; cursor:wait }
+    .btn.big { width:100%; padding:.85rem; font-size:1.05rem }
 
     /* ============ 6. TABLEAU NDF / DSH ============ */
-    .lt-head,
-    .lt-row {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1.3fr 1fr 2.2rem;
-      gap: .5rem;
-      align-items: center
-    }
-
-    .lt-head {
-      font-weight: 600;
-      font-size: .85rem;
-      color: var(--mut)
-    }
-
-    .lt-row {
-      margin: .4rem 0
-    }
-
-    .lt-row label span {
-      display: none
-    }
-
-    .lt-row .line {
-      text-align: right;
-      font-weight: 600
-    }
-
-    .x {
-      border: 1px solid var(--bd);
-      background: #fff;
-      color: var(--mut);
-      height: 2.2rem;
-      font-size: 1.1rem;
-      cursor: pointer
-    }
-
-    .x:hover {
-      border-color: var(--err);
-      color: var(--err)
-    }
-
-    .total {
-      text-align: right;
-      font-size: 1.1rem;
-      margin: .8rem 0 0
-    }
-
-    .total .neg {
-      color: var(--err)
-    }
-
-    @media(max-width:640px) {
-
-      /* mobile : une ligne = un bloc */
-      .lt-head {
-        display: none
-      }
-
-      .lt-row {
-        grid-template-columns: 1fr 1fr 2.2rem;
-        padding: .6rem;
-        border: 1px solid var(--bd)
-      }
-
-      .lt-row label:first-child {
-        grid-column: 1/-1
-      }
-
-      .lt-row label span {
-        display: block;
-        font-size: .8rem;
-        color: var(--mut)
-      }
+    .lt-head, .lt-row { display:grid; grid-template-columns:2fr 1fr 1.3fr 1fr 2.2rem; gap:.5rem; align-items:center }
+    .lt-head { font-weight:600; font-size:.85rem; color:var(--mut) }
+    .lt-row { margin:.4rem 0 }
+    .lt-row label span { display:none }
+    .lt-row .line { text-align:right; font-weight:600 }
+    .x { border:1px solid var(--bd); background:#fff; color:var(--mut); height:2.2rem; font-size:1.1rem; cursor:pointer }
+    .x:hover { border-color:var(--err); color:var(--err) }
+    .total { text-align:right; font-size:1.1rem; margin:.8rem 0 0 }
+    .total .neg { color:var(--err) }
+    @media (max-width:640px) {   /* mobile : une ligne = un bloc */
+      .lt-head { display:none }
+      .lt-row { grid-template-columns:1fr 1fr 2.2rem; padding:.6rem; border:1px solid var(--bd) }
+      .lt-row label:first-child { grid-column:1/-1 }
+      .lt-row label span { display:block; font-size:.8rem; color:var(--mut) }
     }
 
     /* ============ 7. LISTE DES FICHIERS ============ */
-    .files {
-      list-style: none;
-      padding: 0;
-      margin: .5rem 0 0
-    }
-
-    .files li {
-      display: flex;
-      gap: .6rem;
-      align-items: center;
-      border: 1px solid var(--bd);
-      padding: .3rem .3rem .3rem .7rem;
-      margin: .3rem 0
-    }
-
-    .files li span {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap
-    }
-
-    .files li small {
-      color: var(--mut)
-    }
-
-    .files .x {
-      height: 1.9rem;
-      width: 1.9rem
-    }
+    .files { list-style:none; padding:0; margin:.5rem 0 0 }
+    .files li { display:flex; gap:.6rem; align-items:center; border:1px solid var(--bd); padding:.3rem .3rem .3rem .7rem; margin:.3rem 0 }
+    .files li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+    .files li small { color:var(--mut) }
+    .files .x { height:1.9rem; width:1.9rem }
 
     /* ============ 8. ANIMATION D'ENVOI ============ */
-    #overlay {
-      position: fixed;
-      inset: 0;
-      background: #000a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99;
-      padding: 1rem
-    }
-
-    #overlay .box {
-      background: #fff;
-      border-top: 4px solid var(--pri);
-      padding: 1.8rem;
-      max-width: 440px;
-      width: 100%
-    }
-
-    #overlay h2 {
-      margin: 0 0 .5rem;
-      font-size: 1.2rem
-    }
-
-    .bar {
-      height: 12px;
-      background: var(--pri-lt);
-      border: 1px solid var(--bd);
-      margin: 1rem 0 .6rem;
-      overflow: hidden
-    }
-
-    /* barre de progression à rayures qui défilent : montre que ça travaille même pendant un long envoi */
-    .bar i {
-      display: block;
-      height: 100%;
-      width: 0;
-      transition: width .4s;
-      background: repeating-linear-gradient(45deg, var(--pri) 0 10px, var(--pri2) 10px 20px);
-      background-size: 28px 28px;
-      animation: move 1s linear infinite
-    }
-
-    @keyframes move {
-      to {
-        background-position: 28px 0
-      }
-    }
-
-    .done {
-      text-align: center
-    }
-
-    footer {
-      text-align: center;
-      padding: 1rem;
-      font-size: .9rem
-    }
-
-    footer a {
-      color: var(--pri2)
-    }
-
-    textarea {
-      resize: none;
-      overflow: hidden;
-    }
+    #overlay { position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:99; padding:1rem }
+    #overlay .box { background:#fff; border-top:4px solid var(--pri); padding:1.8rem; max-width:440px; width:100% }
+    #overlay h2 { margin:0 0 .5rem; font-size:1.2rem }
+    .bar { height:12px; background:var(--pri-lt); border:1px solid var(--bd); margin:1rem 0 .6rem; overflow:hidden }
+    /* barre à rayures qui défilent : montre que ça travaille même pendant un long envoi */
+    .bar i { display:block; height:100%; width:0; transition:width .4s;
+      background:repeating-linear-gradient(45deg, var(--pri) 0 10px, var(--pri2) 10px 20px); background-size:28px 28px; animation:move 1s linear infinite }
+    @keyframes move { to { background-position:28px 0 } }
+    .done { text-align:center }
+    footer { text-align:center; padding:1rem; font-size:.9rem }
+    footer a { color:var(--pri2) }
+    textarea { resize:none; overflow:hidden }
 
     /* Panneau qui se plie/déplie en douceur (sans connaître sa hauteur) */
-    .slide {
-      display: grid;
-      grid-template-rows: 1fr;
-      transition: grid-template-rows .3s ease, opacity .3s ease
-    }
-
-    .slide.closed {
-      grid-template-rows: 0fr;
-      opacity: 0;
-      pointer-events: none
-    }
-
-    .slide>div {
-      min-height: 0;
-      overflow: hidden;
-      padding: 3px;
-      margin: -3px
-    }
-
-    /* 3px = place pour l'outline de focus */
-    .toggle {
-      margin-top: .4rem
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .slide {
-        transition: none
-      }
-    }
+    .slide { display:grid; grid-template-rows:1fr; transition:grid-template-rows .3s ease, opacity .3s ease }
+    .slide.closed { grid-template-rows:0fr; opacity:0; pointer-events:none }
+    .slide>div { min-height:0; overflow:hidden; padding:3px; margin:-3px }   /* 3px = place pour l'outline de focus */
+    .toggle { margin-top:.4rem }
+    @media (prefers-reduced-motion: reduce) { .slide { transition:none } }
   </style>
 </head>
 
@@ -487,16 +146,16 @@
 
   <script>
     /* =====================================================================
-       PETITS OUTILS
+       PARTIE 1 — PETITS OUTILS (utilisés partout)
        ===================================================================== */
 
-    // Raccourci
+    // Raccourci : $('monId') = document.getElementById('monId')
     const $ = id => document.getElementById(id);
 
     // Transforme un texte HTML en vrai élément de la page
     const html = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
 
-    // Donne un identifiant unique
+    // Donne un identifiant unique (pour relier un <label> à son champ)
     let compteurId = 0;
     const nouvelId = () => 'champ' + (++compteurId);
 
@@ -526,8 +185,14 @@
       return !message;
     }
 
+    // Écrit le texte d'un <label> ou d'un <h3>, avec une étoile rouge si la question est obligatoire
+    function ecrireLabel(element, texte, obligatoire) {
+      element.textContent = texte;
+      if (obligatoire) element.append(html('<span class="req"> *</span>'));
+    }
+
     /* =====================================================================
-       CONNEXION AU SERVEUR (Google + Apps Script)
+       PARTIE 2 — CONNEXION AU SERVEUR (Google + Apps Script)
        ===================================================================== */
 
     const API = 'https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec';
@@ -567,7 +232,7 @@
         if (Array.isArray(ctx.extOk)) EXT_OK = ctx.extOk;
         listeBenef.rafraichir(ctx.benef);      // remplit les menus déroulants
         listePrest.rafraichir(ctx.prest);
-        menuClubs.rafraichir(ctx.list_club_bureau);   // ← nouveau
+        menuClubs.rafraichir(ctx.list_club_bureau);   // liste des clubs/bureaux (TIC)
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
         $('who').textContent = 'Connecté en tant que ' + emailOf(token);
       }).catch(e => status(e.message));
@@ -589,7 +254,7 @@
     });
 
     /* =====================================================================
-       LES COMPOSANTS
+       PARTIE 3 — LES COMPOSANTS
        Chaque fonction ci-dessous construit UN type d'élément de formulaire.
        Toutes renvoient le même genre d'objet :
          {
@@ -600,7 +265,7 @@
          }
        ===================================================================== */
 
-    /* ---------- Zone de texte ----------
+    /* ---------- 3.1 Zone de texte ----------
        zoneTexte({ label:'…', placeholder:'…', erreur:'…', max:300 })
        - erreur : message si vide. Si on ne met pas d'erreur, le champ est facultatif. */
     function zoneTexte({ label, placeholder = '', erreur = '', max = 0 }) {
@@ -608,7 +273,7 @@
       const el = html(`<div><label class="f" for="${id}"></label>
         <textarea id="${id}" rows="2"></textarea><p class="err" role="alert"></p></div>`);
       const champ = el.querySelector('textarea'), msg = el.querySelector('.err');
-      el.querySelector('label').textContent = label;
+      ecrireLabel(el.querySelector('label'), label, !!erreur);   // étoile si une erreur est prévue = obligatoire
       champ.placeholder = placeholder;
       if (max) champ.maxLength = max;
 
@@ -633,14 +298,14 @@
       };
     }
 
-    /* ---------- Montant en euros ----------
+    /* ---------- 3.2 Montant en euros ----------
        montant({ label:'…', erreur:'…' })   valeur() -> 12.5 (nombre) ou null */
     function montant({ label, erreur }) {
       const id = nouvelId();
       const el = html(`<div><label class="f" for="${id}"></label>
         <input type="text" id="${id}" inputmode="decimal" placeholder="0,00"><p class="err" role="alert"></p></div>`);
       const champ = el.querySelector('input'), msg = el.querySelector('.err');
-      el.querySelector('label').textContent = label;
+      ecrireLabel(el.querySelector('label'), label, true);
 
       const brut = () => champ.value.trim().replace(',', '.');
       const valider = () => montrerErreur(champ, msg, /^\d+(\.\d{1,2})?$/.test(brut()) && +brut() > 0 ? '' : erreur);
@@ -658,15 +323,18 @@
       };
     }
 
-    /* ---------- Tableau de lignes (nom / quantité / prix) ----------
-       tableau()   valeur() -> [{nom, qte, pu}, …] */
-    function tableau() {
-      const el = html(`<div>
+    /* ---------- 3.3 Tableau de lignes (nom / quantité / prix) ----------
+       tableau({ label:'Titre du tableau' })   (toujours obligatoire, donc étoile)
+       valeur() -> [{nom, qte, pu}, …] */
+    function tableau({ label = '' } = {}) {
+      const el = html(`<div><h3></h3>
         <div class="lt-head"><span>Nom</span><span>Quantité</span><span>Prix unitaire</span><span style="text-align:right">Total</span><span></span></div>
         <div class="rows"></div>
         <button type="button" class="btn ghost add">+ Ajouter une ligne</button>
         <p class="total">Total : <strong>0,00 €</strong></p><p class="err" role="alert"></p></div>`);
       const lignes = el.querySelector('.rows'), total = el.querySelector('strong'), msg = el.querySelector('.err');
+      const titre = el.querySelector('h3');
+      if (label) ecrireLabel(titre, label, true); else titre.remove();
 
       // Lit une ligne du tableau -> { nom, qte, pu }
       const lire = l => ({ nom: l.querySelector('.name').value.trim(), qte: l.querySelector('.qty').value, pu: l.querySelector('.price').value });
@@ -717,16 +385,20 @@
       return { el, valider, vider, valeur: () => [...lignes.children].map(lire).filter(remplie) };
     }
 
-    /* ---------- Dépôt de fichiers ----------
+    /* ---------- 3.4 Dépôt de fichiers ----------
+       fichiers({ label:'Justificatifs', aide:'texte d'aide' })  -> titre + aide au-dessus du bouton
        fichiers({ pdf:true })  -> un seul PDF
        fichiers({ obligatoire:false }) -> plusieurs fichiers, facultatif
        valeur() -> liste de File */
-    function fichiers({ pdf = false, obligatoire = true } = {}) {
+    function fichiers({ pdf = false, obligatoire = true, label = '', aide = '' } = {}) {
       let liste = [], avis = '';                // avis = fichiers refusés lors du dernier ajout
-      const el = html(`<div><label class="btn ghost">${pdf ? 'Choisir le PDF de la facture' : 'Ajouter des fichiers'}
+      const el = html(`<div><h3></h3><p class="mut"></p><label class="btn ghost">${pdf ? 'Choisir le PDF de la facture' : 'Ajouter des fichiers'}
         <input type="file" hidden ${pdf ? 'accept="application/pdf,.pdf"' : 'multiple'}></label>
         <ul class="files"></ul><p class="err" role="alert"></p></div>`);
       const input = el.querySelector('input'), ul = el.querySelector('ul'), msg = el.querySelector('.err');
+      const titre = el.querySelector('h3'), texteAide = el.querySelector('p.mut');
+      if (label) ecrireLabel(titre, label, obligatoire); else titre.remove();   // étoile si obligatoire
+      if (aide) texteAide.textContent = aide; else texteAide.remove();
 
       // Redessine la liste des fichiers choisis
       function dessiner() {
@@ -772,14 +444,14 @@
     }
 
     /* ---------- Menu déroulant simple ----------
-      menuListe({ label:'…', erreur:'…' })
-      rafraichir(liste) remplit le menu ; valeur() -> le texte choisi ('' si rien) */
+       menuListe({ label:'…', erreur:'…' })   (toujours obligatoire)
+       rafraichir(liste) remplit le menu ; valeur() -> le texte choisi ('' si rien) */
     function menuListe({ label, erreur }) {
       const id = nouvelId();
       const el = html(`<div><label class="f" for="${id}"></label>
         <select id="${id}"></select><p class="err" role="alert"></p></div>`);
       const menu = el.querySelector('select'), msg = el.querySelector('.err');
-      el.querySelector('label').textContent = label;
+      ecrireLabel(el.querySelector('label'), label, true);
 
       const valider = () => montrerErreur(menu, msg, menu.value ? '' : erreur);
       menu.addEventListener('change', valider);
@@ -801,7 +473,7 @@
       };
     }
 
-    /* ---------- Menu déroulant + « ajouter un nouveau » ----------
+    /* ---------- 3.5 Menu déroulant + « ajouter un nouveau » ----------
        choixPersonne({ mot:'bénéficiaire', champs:[…] })
        - Menu avec les personnes déjà connues, OU mini-formulaire pour en créer une.
        - rafraichir(liste) remplit le menu.
@@ -844,7 +516,7 @@
       const el = html(`<div>
         <p class="mut">Choisissez votre ${mot} uniquement si ses informations bancaires n'ont pas changé.</p>
         <div class="slide pick"><div>
-          <label class="f" for="${id}">Choix du ${mot} :</label><select id="${id}"></select><p class="err" role="alert"></p>
+          <label class="f" for="${id}">Choix du ${mot} : <span class="req">*</span></label><select id="${id}"></select><p class="err" role="alert"></p>
         </div></div>
         <button type="button" class="btn ghost toggle"></button>
         <div class="slide form closed" inert><div>
@@ -858,7 +530,7 @@
       champs.forEach(c => {
         const w = html(`<div><label class="f"></label><input type="${c.type || 'text'}" autocomplete="off" maxlength="${c.key === 'iban' ? 42 : 200}"><p class="err" role="alert"></p></div>`);
         const input = w.querySelector('input');
-        w.querySelector('label').textContent = c.label;
+        ecrireLabel(w.querySelector('label'), c.label, !!c.req);   // étoile seulement si le champ a un message « req »
         input.value = c.def || ''; input.placeholder = c.ph || '';
         saisies[c.key] = input; msgs[c.key] = w.querySelector('.err');
 
@@ -930,7 +602,7 @@
     }
 
     /* =====================================================================
-       LES CARTES
+       PARTIE 4 — LES CARTES (les « sections » du formulaire)
        carte('Titre', [ composants ou éléments… ], 'note facultative')
        - Un composant (avec valider/vider) est repéré automatiquement :
          il sera validé à l'envoi et vidé quand la carte disparaît.
@@ -948,7 +620,7 @@
     }
 
     /* =====================================================================
-       LE FORMULAIRE
+       PARTIE 5 — LE FORMULAIRE : on assemble les composants
        ===================================================================== */
 
     // --- Commun à tous les types ---
@@ -958,55 +630,45 @@
       erreur: 'Ajoutez une courte description du virement.', max: 300
     });
 
+    // --- Textes d'aide réutilisés ---
+    const AIDE_FICHIERS = 'Images (HEIC, PDF, Word, Excel, texte...) : 10 fichiers maximum, 10 Mo chacun.';
+
     // --- Composants propres à chaque type ---
-    const tableauNDF = tableau();
-    const fichiersNDF = fichiers();
+    // (un titre = label ; l'étoile * apparaît toute seule quand la question est obligatoire)
+    const tableauNDF  = tableau({ label: 'Tableau de la NDF' });
+    const fichiersNDF = fichiers({ label: 'Justificatifs', aide: AIDE_FICHIERS });
 
     const raisonDSH = zoneTexte({
       label: `Raison de la non obtention d'un justificatif`,
       placeholder: `Ex : J'ai acheté mon article sur Vinted, un site ne fournissant pas de facture`,
       erreur: 'Ajoutez la raison de non obtention de votre justificatif.', max: 1000
     });
-    const tableauDSH = tableau();
-    const fichiersDSH = fichiers({ obligatoire: false });
+    const tableauDSH  = tableau({ label: 'Tableau de la DSH' });
+    const fichiersDSH = fichiers({ label: 'Justificatifs (facultatif)', aide: AIDE_FICHIERS, obligatoire: false });
 
     const libelleFac = zoneTexte({ label: 'Libellé du virement (si demandé par le prestataire)', placeholder: 'fac - 260931', max: 140 });
     const montantFac = montant({ label: 'Montant de la facture (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
-    const fichierFac = fichiers({ pdf: true });
-    const montantTicket   = montant({ label: 'Montant du ticket (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
-    const descTicket      = zoneTexte({ label: 'Description courte du ticket', placeholder: 'Ex : Ticket n°42 – achat de peinture', erreur: 'Ajoutez une courte description du ticket.', max: 300 });
-    const tableauTicket   = tableau();
-    const fichiersTicket  = fichiers({ obligatoire: false });   // mettre true si le dépôt est obligatoire
+    const fichierFac = fichiers({ label: 'Facture (PDF uniquement, 1 fichier, 10 Mo maximum)', pdf: true });
+
+    const montantTicket  = montant({ label: 'Montant du ticket (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
+    const descTicket     = zoneTexte({ label: 'Description courte du ticket', placeholder: 'Ex : Ticket n°42 – achat de peinture', erreur: 'Ajoutez une courte description du ticket.', max: 300 });
+    const tableauTicket  = tableau({ label: 'Tableau du ticket' });
+    const fichiersTicket = fichiers({ label: 'Justificatifs (facultatif)', aide: AIDE_FICHIERS, obligatoire: false });   // obligatoire: true pour l'exiger
 
     const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
     const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
-    const menuClubs = menuListe({ label: 'Bureau ou club destinataire', erreur: 'Choisissez le bureau ou club destinataire.' });
+    const menuClubs  = menuListe({ label: 'Bureau ou club destinataire', erreur: 'Choisissez le bureau ou club destinataire.' });
 
     // --- Les cartes ---
-    const AIDE_FICHIERS = 'Images (HEIC, PDF, Word, Excel, texte...) : 10 fichiers maximum, 10 Mo chacun.';
+    const carteNDF = carte('Note De Frais', [tableauNDF, fichiersNDF],
+      'Une NDF permet UNIQUEMENT de rembourser un membre de l\'AEn7. Les tickets de carte, les screens de compte bancaire ou les « je te jure j\'ai payé » ne permettent pas de créer une NDF.');
 
-    const carteNDF = carte('Note De Frais', [
-      sousTitre('Tableau de la NDF'), tableauNDF,
-      sousTitre('Justificatifs'), aide(AIDE_FICHIERS), fichiersNDF
-    ], 'Une NDF permet UNIQUEMENT de rembourser un membre de l\'AEn7. Les tickets de carte, les screens de compte bancaire ou les « je te jure j\'ai payé » ne permettent pas de créer une NDF.');
+    const carteDSH = carte('Déclaration sur l\'honneur', [raisonDSH, tableauDSH, fichiersDSH]);
 
-    const carteDSH = carte('Déclaration sur l\'honneur', [
-      raisonDSH,
-      sousTitre('Tableau de la DSH'), tableauDSH,
-      sousTitre('Justificatifs (facultatif)'), aide(AIDE_FICHIERS), fichiersDSH
-    ]);
+    const carteFAC = carte('Facture', [libelleFac, montantFac, fichierFac],
+      'Attention : un devis (même signé) n\'est pas une facture. Tout prestataire a l\'obligation de vous fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club pour garder une bonne trace de votre trésorerie.');
 
-    const carteFAC = carte('Facture', [
-      libelleFac, montantFac,
-      sousTitre('Facture (PDF uniquement, 1 fichier, 10 Mo maximum)'), fichierFac
-    ], 'Attention : un devis (même signé) n\'est pas une facture. Tout prestataire a l\'obligation de vous fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club pour garder une bonne trace de votre trésorerie.');
-
-    const carteTicket = carte('Ticket interne', [
-      montantTicket,
-      descTicket,
-      sousTitre('Tableau du ticket'), tableauTicket,
-      sousTitre('Justificatifs'), aide(AIDE_FICHIERS), fichiersTicket
-    ]);
+    const carteTicket = carte('Ticket interne', [montantTicket, descTicket, tableauTicket, fichiersTicket]);
 
     const carteBenef = carte('Bénéficiaire', [listeBenef]);
     const cartePrest = carte('Prestataire', [listePrest]);
@@ -1015,7 +677,7 @@
     // --- LA table de correspondance : pour chaque type, ce qu'on affiche et ce qu'on envoie ---
     //   cartes     : les sections affichées
     //   fichiers   : le composant dont on envoie les fichiers
-    //   personne   : le composant bénéficiaire/prestataire
+    //   personne   : ce qui identifie le destinataire (bénéficiaire, prestataire ou club)
     //   donnees()  : les champs spécifiques envoyés au serveur
     const TYPES = {
       NDF: {
@@ -1036,12 +698,14 @@
       TIC: {
         libelle: 'Un Ticket interne (TIC)',
         cartes: [carteTicket, carteClubs], fichiers: fichiersTicket,
-        personne: { valeur: () => ({ club: menuClubs.valeur() }) },   // voir note ci-dessous
+        personne: { valeur: () => ({ club: menuClubs.valeur() }) },   // pas de bénéficiaire : on envoie le club
         donnees: () => ({ amount: montantTicket.valeur(), reason: descTicket.valeur(), table: tableauTicket.valeur() })
       }
     };
-    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteClubs, carteBenef, cartePrest];    /* =====================================================================
-       AFFICHAGE : choix du type et montage de la page
+    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteClubs, carteBenef, cartePrest];
+
+    /* =====================================================================
+       PARTIE 6 — AFFICHAGE : choix du type et montage de la page
        ===================================================================== */
 
     let type = '';   // 'NDF', 'DSH', 'FAC' ou ''
@@ -1071,13 +735,16 @@
       });
       boiteType.append(choix);
     });
-    carteDebut.append(description.el, boiteType, html('<p class="err" id="e-type" role="alert"></p>'));
+    carteDebut.append(
+      html('<p class="mut">Les champs marqués d\'un <span class="req">*</span> sont obligatoires.</p>'),
+      description.el, boiteType, html('<p class="err" id="e-type" role="alert"></p>')
+    );
 
     // On pose le tout dans la page, dans l'ordre
     $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
 
     /* =====================================================================
-       ENVOI
+       PARTIE 7 — ENVOI
        ===================================================================== */
 
     $('form').addEventListener('submit', e => e.preventDefault());
