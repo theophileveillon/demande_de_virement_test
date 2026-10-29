@@ -735,10 +735,6 @@
       });
       boiteType.append(choix);
     });
-    carteDebut.append(
-      html('<p class="mut">Les champs marqués d\'un <span class="req">*</span> sont obligatoires.</p>'),
-      description.el, boiteType, html('<p class="err" id="e-type" role="alert"></p>')
-    );
 
     // On pose le tout dans la page, dans l'ordre
     $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
