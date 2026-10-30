@@ -55,7 +55,7 @@
     .lt-head, .lt-row { display:grid; grid-template-columns:2fr 1fr 1.3fr 1fr 2.2rem; gap:.5rem; align-items:center }
     .lt-head { font-weight:600; font-size:.85rem; color:var(--mut) }
     .lt-row { margin:.4rem 0 }
-    .lt-row label span { display:none }
+    .lt-row label span { position:absolute; left:-9999px }
     .lt-row .line { text-align:right; font-weight:600 }
     .x { border:1px solid var(--bd); background:#fff; color:var(--mut); height:2.2rem; font-size:1.1rem; cursor:pointer }
     .x:hover { border-color:var(--err); color:var(--err) }
@@ -65,7 +65,9 @@
       .lt-head { display:none }
       .lt-row { grid-template-columns:1fr 1fr 2.2rem; padding:.6rem; border:1px solid var(--bd) }
       .lt-row label:first-child { grid-column:1/-1 }
-      .lt-row label span { display:block; font-size:.8rem; color:var(--mut) }
+      .lt-row label span { position:static; display:block; font-size:.8rem; color:var(--mut) }
+      .lt-row .x { grid-column:3; grid-row:2 }
+      .lt-row .line { grid-column:1/-1 }
     }
 
     /* ============ 7. LISTE DES FICHIERS ============ */
@@ -74,6 +76,9 @@
     .files li span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
     .files li small { color:var(--mut) }
     .files .x { height:1.9rem; width:1.9rem }
+    .sr { position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap }   /* champ fichier : focalisable au clavier */
+    label.btn { position:relative }
+    label.btn:focus-within { outline:2px solid var(--pri2); outline-offset:2px }
 
     /* ============ 8. ANIMATION D'ENVOI ============ */
     #overlay { position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:99; padding:1rem }
@@ -209,10 +214,12 @@
     // Envoie un message au serveur et attend sa réponse
     async function call(payload) {
       let j;
+      const stop = new AbortController(), minuteur = setTimeout(() => stop.abort(), 180000);   // 3 min maximum par appel
       try {
-        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, idToken: token }) });
+        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, idToken: token }), signal: stop.signal });
         j = await r.json();
-      } catch (_) { throw Error('Impossible de joindre le serveur : vérifiez votre connexion puis réessayez.'); }
+      } catch (_) { throw Error('Impossible de joindre le serveur (ou délai dépassé) : vérifiez votre connexion puis réessayez.'); }
+      finally { clearTimeout(minuteur); }
       if (!j.ok) { const e = Error(j.error || 'Erreur serveur'); e.code = j.code; throw e; }
       return j;
     }
@@ -221,18 +228,24 @@
     const emailOf = t => { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || ''; } catch (e) { return ''; } };
 
     // Appelée par Google quand la personne s'est connectée
+        // Applique les données reçues du serveur (à la connexion, puis après chaque envoi réussi)
+    function appliquerContexte(x) {
+      ctx = x;
+      if (ctx.maxFiles) MAX_FILES = ctx.maxFiles;
+      if (ctx.maxBytes) MAX_BYTES = ctx.maxBytes;
+      if (Array.isArray(ctx.extOk)) EXT_OK = ctx.extOk;
+      listeBenef.rafraichir(ctx.benef);      // remplit les menus déroulants
+      listePrest.rafraichir(ctx.prest);
+      menuClubs.rafraichir(ctx.list_club_bureau);   // liste des clubs/bureaux (TIC)
+    }
+
+    // Appelée par Google quand la personne s'est connectée
     function credential(r) {
       token = r.credential;
       if (ctx) { $('resignin').innerHTML = ''; $('sendErr').textContent = 'Session renouvelée : cliquez de nouveau sur « Envoyer ».'; return; }
       status('Vérification de votre adresse en cours…', true);
       call({ action: 'context' }).then(x => {
-        ctx = x;
-        if (ctx.maxFiles) MAX_FILES = ctx.maxFiles;
-        if (ctx.maxBytes) MAX_BYTES = ctx.maxBytes;
-        if (Array.isArray(ctx.extOk)) EXT_OK = ctx.extOk;
-        listeBenef.rafraichir(ctx.benef);      // remplit les menus déroulants
-        listePrest.rafraichir(ctx.prest);
-        menuClubs.rafraichir(ctx.list_club_bureau);   // liste des clubs/bureaux (TIC)
+        appliquerContexte(x);
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
         $('who').textContent = 'Connecté en tant que ' + emailOf(token);
       }).catch(e => status(e.message));
@@ -337,9 +350,11 @@
       if (label) ecrireLabel(titre, label, obligatoire); else titre.remove();
 
       // Lit une ligne du tableau -> { nom, qte, pu }
-      const lire = l => ({ nom: l.querySelector('.name').value.trim(), qte: l.querySelector('.qty').value, pu: l.querySelector('.price').value });
+      const decimal = v => { if (v === '') return ''; const n = Number(v); if (!isFinite(n)) return v; const s = String(n); return /e/i.test(s) ? n.toFixed(10).replace(/\.?0+$/, '') : s; };
+      const lire = l => ({ nom: l.querySelector('.name').value.trim(), qte: decimal(l.querySelector('.qty').value), pu: decimal(l.querySelector('.price').value) });
       const remplie = l => l.nom || l.qte || l.pu;
-      const centimes = l => Math.round((+l.qte || 0) * (+l.pu || 0) * 100);
+      // Même formule que le serveur (Code.gs › parseTable_) : prix arrondi au centime, puis quantité × centimes
+      const centimes = l => Math.round((+l.qte || 0) * Math.round((+l.pu || 0) * 100));
 
       // Met à jour les totaux affichés
       function recalculer() {
@@ -392,7 +407,7 @@
     function fichiers({ pdf = false, obligatoire = true, label = '', aide = '' } = {}) {
       let liste = [], avis = '';                // avis = fichiers refusés lors du dernier ajout
       const el = html(`<div><h3></h3><p class="mut"></p><label class="btn ghost">${pdf ? 'Choisir le PDF de la facture' : 'Ajouter des fichiers'}
-        <input type="file" hidden ${pdf ? 'accept="application/pdf,.pdf"' : 'multiple'}></label>
+        <input type="file" class="sr" ${pdf ? 'accept="application/pdf,.pdf"' : 'multiple'}></label>
         <ul class="files"></ul><p class="err" role="alert"></p></div>`);
       const input = el.querySelector('input'), ul = el.querySelector('ul'), msg = el.querySelector('.err');
       const titre = el.querySelector('h3'), texteAide = el.querySelector('p.mut');
@@ -729,7 +744,10 @@
     Object.entries(TYPES).forEach(([code, t]) => {
       const choix = html(`<label class="choice"><input type="radio" name="type" value="${code}"> ${t.libelle}</label>`);
       choix.querySelector('input').addEventListener('click', e => {
-        if (code === type) e.target.checked = false;            // recliquer = désélectionner
+        if (code === type) {                                    // recliquer = désélectionner… et tout effacer : on confirme
+          if (!confirm('Décocher ce type efface ce que vous avez saisi. Continuer ?')) { e.preventDefault(); return; }
+          e.target.checked = false;
+        }
         choisirType(e.target.checked ? code : null);
         if (type) TYPES[type].cartes[0].el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -799,9 +817,11 @@
           ...t.donnees()              // champs propres au type
         });
         $('doneText').textContent = 'Votre demande de virement a bien été enregistrée.';
+        call({ action: 'context' }).then(appliquerContexte).catch(() => { /* on garde l'ancienne liste */ });
         $('form').classList.add('hidden'); $('done').classList.remove('hidden'); window.scrollTo({ top: 0 });
       } catch (e) {
         console.error(e);
+        if (e.code === 'FILE') dejaEnvoyes.clear();
         if (e.code === 'AUTH') {    // jeton Google expiré (~1 h)
           $('sendErr').textContent = 'Votre session Google a expiré : reconnectez-vous ci-dessous, puis cliquez de nouveau sur « Envoyer ».';
           google.accounts.id.renderButton($('resignin'), { theme: 'outline', size: 'large' });
