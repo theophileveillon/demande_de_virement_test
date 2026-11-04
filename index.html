@@ -727,7 +727,6 @@
     // Affiche les cartes du type choisi, cache (et vide) les autres
     function choisirType(valeur) {
       type = valeur || '';
-      boiteDesc.classList.toggle('hidden', !type);
       const voulues = type ? TYPES[type].cartes : [];
       TOUTES_LES_CARTES.forEach(c => {
         const afficher = voulues.includes(c);
@@ -736,6 +735,7 @@
       });
       $('sendBar').classList.toggle('hidden', !type);
       $('e-type').textContent = ''; $('sendErr').textContent = '';
+      majVerrou();
     }
 
     // Carte 1 : description + boutons radio (fabriqués depuis TYPES)
@@ -755,14 +755,42 @@
     });
 
     // On pose le tout dans la page, dans l'ordre
-    $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
-    const eType = html('<p class="err" id="e-type" role="alert"></p>');
-    carteDebut.append(boiteType, eType);
 
-    // La description est commune à tous les types : visible seulement quand un type est choisi
+    // --- Écran d'accueil : un simple bouton « Faire une demande » ---
+    const ecranAccueil = html('<section class="card" id="accueil"></section>');
+    const boutonDemande = html('<button type="button" class="btn" id="btnDemande">Faire une demande</button>');
+    ecranAccueil.append(boutonDemande);
+
+    // Le formulaire (choix du type + cartes) est caché tant qu'on n'a pas cliqué
+    function afficherFormulaire(oui) {
+      ecranAccueil.classList.toggle('hidden', oui);
+      carteDebut.classList.toggle('hidden', !oui);
+    }
+    boutonDemande.addEventListener('click', () => {
+      afficherFormulaire(true);
+      carteDebut.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
+    $('sections').append(ecranAccueil, carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
+    const eType = html('<p class="err" id="e-type" role="alert"></p>');
+
+    // La description commune
     const boiteDesc = description.el;
-    boiteDesc.classList.add('hidden');
-    carteDebut.append(boiteDesc);
+    const indice = aide('Remplissez d\'abord la description pour pouvoir choisir un type.');
+    carteDebut.append(boiteDesc, indice, boiteType, eType);
+
+    function majVerrou() {
+      const rempli = description.valeur().trim() !== '';
+      const verrouille = !rempli && !type;          // si un type est déjà choisi, on ne bloque plus
+      boiteType.querySelectorAll('input').forEach(r => r.disabled = verrouille);
+      boiteType.classList.toggle('locked', verrouille);
+      indice.classList.toggle('hidden', !verrouille);
+    }
+    boiteDesc.addEventListener('input', majVerrou);
+    majVerrou();
+
+    afficherFormulaire(false);
 
     /* =====================================================================
        PARTIE 7 — ENVOI
