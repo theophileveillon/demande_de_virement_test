@@ -1163,12 +1163,13 @@
       { key: 'id', titre: 'N° de demande', format: v => String(v).slice(0, 8).toUpperCase(), tip: true },
       { key: 'title', titre: 'Titre' },
       { key: 'amount', titre: 'Montant total', droite: true, format: v => eur(Math.round((+v || 0) * 100)) },
-      { key: 'beneficiary', titre: 'Bénéficiaire / prestataire / club' }
+      { key: 'beneficiary', titre: 'Bénéficiaire / prestataire / club' },
+      { key: 'status', titre: 'Statut', format: v => v || 'En attente de traitement' }
     ];
 
     // Composant : { el, rafraichir(lignes) }
     function suiviDemandes() {
-      const el = html('<div class="suivi-box"><h3>Demandes en cours</h3><div class="suivi-scroll"></div></div>');
+      const el = html('<div class="suivi-box"><h3>Mes demandes</h3><div class="suivi-scroll"></div></div>');
       const zone = el.querySelector('.suivi-scroll');
       function rafraichir(lignes) {
         zone.innerHTML = '';
@@ -1235,7 +1236,7 @@
     const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
     const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
     const menuClubs = menuListe({ label: 'Bureau ou club destinataire', erreur: 'Choisissez le bureau ou club destinataire.' });
-    const menuSuivi = menuListe({ label: 'Suivi des demandes', erreur: 'Il n\'y a pas de demandes en cours.' });
+    const menuSuivi = menuListe({ label: 'Suivi des demandes', erreur: 'Il n\'y a pas de demandes.' });
 
     // --- Les cartes ---
     const carteNDF = carte('Note De Frais', [tableauNDF, fichiersNDF],
