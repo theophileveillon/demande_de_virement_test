@@ -504,6 +504,11 @@
       text-align: right;
       white-space: nowrap;
     }
+    .lt-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0; }
+    .lt-import { border:1px solid #ccc; border-radius:8px; padding:.75rem; margin:.5rem 0; }
+    .lt-example { background:#f5f5f5; padding:.5rem .75rem; border-radius:6px; overflow:auto; font-size:.85em; }
+    .lt-rules { margin:.5rem 0; padding-left:1.2rem; font-size:.9em; }
+    .lt-json { width:100%; box-sizing:border-box; font-family:monospace; }
   </style>
 </head>
 
@@ -609,6 +614,7 @@
 
     let token = '';            // jeton Google : prouve qui vous êtes au serveur
     let ctx = null;            // infos reçues du serveur (listes de bénéficiaires, limites…)
+    let nom_club = '';          // nom du club/bureau de la personne connectée (pour le suivi)
     let reqId = makeReqId();
 
     // Réglages (le serveur peut les modifier à la connexion)
@@ -642,6 +648,7 @@
       listePrest.rafraichir(ctx.prest);
       menuClubs.rafraichir(ctx.list_club_bureau);   // liste des clubs/bureaux (TIC)
       tableSuivi.rafraichir(ctx.dem_suivi);
+      nom_club = ctx.club || '';
     }
 
     // Appelée par Google quand la personne s'est connectée
@@ -652,7 +659,7 @@
       call({ action: 'context' }).then(x => {
         appliquerContexte(x);
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
-        $('who').textContent = 'Connecté en tant que ' + emailOf(token);
+        $('who').textContent = 'Connecté en tant que ' + nom_club;
       }).catch(e => status(e.message));
     }
 
@@ -903,14 +910,6 @@
 
       return { el, valider, vider, valeur: () => [...lignes.children].map(lire).filter(remplie) };
     }
-
-    /* ---------- CSS minimal à ajouter (adaptez à votre charte) ----------
-    .lt-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0; }
-    .lt-import { border:1px solid #ccc; border-radius:8px; padding:.75rem; margin:.5rem 0; }
-    .lt-example { background:#f5f5f5; padding:.5rem .75rem; border-radius:6px; overflow:auto; font-size:.85em; }
-    .lt-rules { margin:.5rem 0; padding-left:1.2rem; font-size:.9em; }
-    .lt-json { width:100%; box-sizing:border-box; font-family:monospace; }
-    */
 
     /* ---------- 3.4 Dépôt de fichiers ----------
        fichiers({ label:'Justificatifs', aide:'texte d'aide' })  -> titre + aide au-dessus du bouton
