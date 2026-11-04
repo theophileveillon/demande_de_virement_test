@@ -100,6 +100,12 @@
     .slide>div { min-height:0; overflow:hidden; padding:3px; margin:-3px }   /* 3px = place pour l'outline de focus */
     .toggle { margin-top:.4rem }
     @media (prefers-reduced-motion: reduce) { .slide { transition:none } }
+    .suivi-box { margin-top: 1.5rem; }
+    .suivi-scroll { overflow-x: auto; }
+    table.suivi { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    table.suivi th, table.suivi td { padding: .5rem .6rem; text-align: left; border-bottom: 1px solid #ddd; }
+    table.suivi th { color: var(--mut); font-weight: 600; }
+    table.suivi .num { text-align: right; white-space: nowrap; }
   </style>
 </head>
 
@@ -615,7 +621,55 @@
       rafraichir([]);
       return { el, valider, valeur, vider, rafraichir };
     }
+    /* ---------- 3.6 Tableau de suivi des demandes ----------
+      JSON_to_tab(lignes, colonnes) -> un <table> construit depuis un tableau JSON.
+      colonnes : [{ key, titre, droite?, format?(valeur, ligne), tip? }]
+      - format : transforme la valeur affichée
+      - tip    : true => la valeur brute apparaît en infobulle
+      Le texte passe par textContent : aucune injection HTML possible. */
+    function JSON_to_tab(lignes, colonnes) {
+      const table = html('<table class="suivi"><thead><tr></tr></thead><tbody></tbody></table>');
+      const entete = table.querySelector('thead tr'), corps = table.querySelector('tbody');
+      colonnes.forEach(c => {
+        const th = document.createElement('th');
+        th.scope = 'col'; th.textContent = c.titre;
+        if (c.droite) th.className = 'num';
+        entete.append(th);
+      });
+      (lignes || []).forEach(l => {
+        const tr = document.createElement('tr');
+        colonnes.forEach(c => {
+          const td = document.createElement('td'), v = c.format ? c.format(l[c.key], l) : l[c.key];
+          td.textContent = v == null ? '' : v;
+          if (c.droite) td.className = 'num';
+          if (c.tip) td.title = l[c.key] || '';
+          tr.append(td);
+        });
+        corps.append(tr);
+      });
+      return table;
+    }
 
+    // Colonnes du suivi (les clés viennent de demandesSuivi_ côté serveur)
+    const COLONNES_SUIVI = [
+      { key: 'id',          titre: 'N° de demande',                       format: v => String(v).slice(0, 8).toUpperCase(), tip: true },
+      { key: 'title',       titre: 'Titre' },
+      { key: 'amount',      titre: 'Montant total', droite: true,         format: v => eur(Math.round((+v || 0) * 100)) },
+      { key: 'beneficiary', titre: 'Bénéficiaire / prestataire / club' }
+    ];
+
+    // Composant : { el, rafraichir(lignes) }
+    function suiviDemandes() {
+      const el = html('<div class="suivi-box"><h3>Demandes en cours</h3><div class="suivi-scroll"></div></div>');
+      const zone = el.querySelector('.suivi-scroll');
+      function rafraichir(lignes) {
+        zone.innerHTML = '';
+        if (!lignes || !lignes.length) { zone.append(html('<p class="mut">Aucune demande en cours.</p>')); return; }
+        zone.append(JSON_to_tab(lignes, COLONNES_SUIVI));
+      }
+      rafraichir([]);
+      return { el, rafraichir };
+    }
     /* =====================================================================
        PARTIE 4 — LES CARTES (les « sections » du formulaire)
        carte('Titre', [ composants ou éléments… ], 'note facultative')
@@ -719,7 +773,7 @@
       }
     };
     const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteClubs, carteBenef, cartePrest];
-
+    const tableSuivi = suiviDemandes();
     /* =====================================================================
        PARTIE 6 — AFFICHAGE : choix du type et montage de la page
        ===================================================================== */
@@ -761,9 +815,9 @@
     // --- Écran d'accueil : un simple bouton « Faire une demande » ---
     const ecranAccueil = html('<section class="card" id="accueil"></section>');
     const boutonDemande = html('<button type="button" class="btn" id="btnDemande">Faire une demande</button>');
-    ecranAccueil.append(boutonDemande);
+    ecranAccueil.append(boutonDemande, tableSuivi.el);
 
-    // Le formulaire (choix du type + cartes) est caché tant qu'on n'a pas cliqué
+    // Le formulaire (choix du type + cartes)
     function afficherFormulaire(oui) {
       ecranAccueil.classList.toggle('hidden', oui);
       carteDebut.classList.toggle('hidden', !oui);
@@ -773,7 +827,6 @@
       carteDebut.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    $('sections').append(carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
     $('sections').append(ecranAccueil, carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
     const eType = html('<p class="err" id="e-type" role="alert"></p>');
 
