@@ -517,8 +517,8 @@
     <img src="logo_AE.png" alt="Logo de l'AEn7" onerror="this.remove()">
     <h1>Demande de virement</h1>
     <p>Ce formulaire permet de faire une demande de virement depuis le compte bancaire de l'AEn7 vers un tiers :
-      un membre de l'AEn7 (via une note de frais ou une déclaration sur l'honneur) ou un prestataire extérieur (via une
-      facture).</p>
+      un membre de l'AEn7 (via une note de frais ou une déclaration sur l'honneur), un prestataire extérieur (via une
+      facture) ou un Bureau/Club de l'AEn7 via un Ticket interne.</p>
   </header>
 
   <main>
@@ -543,7 +543,7 @@
     <section class="card done hidden" id="done">
       <h2>Demande envoyée</h2>
       <p id="doneText"></p>
-      <button type="button" class="btn" id="again">Faire une autre demande</button>
+      <button type="button" class="btn" id="again">Retour à l'accueil</button>
     </section>
   </main>
 
@@ -1422,13 +1422,14 @@
       }
     };
 
-    // « Faire une autre demande »
+    // « Retour à l'accueil » : on réinitialise le formulaire puis on affiche l'écran d'accueil
     $('again').onclick = () => {
       reqId = makeReqId();          // sinon le serveur répond « duplicate »
       dejaEnvoyes.clear();
       document.querySelectorAll('input[name=type]').forEach(r => r.checked = false);
       choisirType(null);
       description.vider();
+      afficherFormulaire(false);    // cache la carte « description + type », montre l'accueil
       $('done').classList.add('hidden'); $('form').classList.remove('hidden'); window.scrollTo({ top: 0 });
     };
   </script>
