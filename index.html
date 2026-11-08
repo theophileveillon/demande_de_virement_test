@@ -581,10 +581,8 @@
     const extension = nom => (nom.match(/\.([A-Za-z0-9]+)$/) || ['', ''])[1].toLowerCase();
 
     // Identifiant unique d'une demande (regroupe les fichiers et la ligne du sheet)
-    function makeReqId() {
-      try { return crypto.randomUUID().replace(/-/g, '').slice(0, 32); }
-      catch (e) { return (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 32); }
-    }
+    // L'identifiant DEM-XXXX est alloué par le serveur sous verrou.
+    function makeReqId(reponse) { return reponse && reponse.reqId ? reponse.reqId : ''; }
 
     // Affiche ou efface une erreur sous un champ.
     //   champ   = le <input>/<select>/<textarea>   (il devient rouge)
@@ -615,11 +613,11 @@
     let token = '';            // jeton Google : prouve qui vous êtes au serveur
     let ctx = null;            // infos reçues du serveur (listes de bénéficiaires, limites…)
     let nom_club = '';          // nom du club/bureau de la personne connectée (pour le suivi)
-    let reqId = makeReqId();
+    let reqId = makeReqId(null);
 
     // Réglages (le serveur peut les modifier à la connexion)
     let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024;
-    let EXT_OK = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp', 'tif', 'tiff', 'avif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'odt', 'ods', 'csv', 'txt', 'rtf'];
+    let EXT_OK = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp', 'tif', 'tiff', 'avif', 'pdf'];
 
     // Envoie un message au serveur et attend sa réponse
     async function call(payload) {
@@ -656,8 +654,9 @@
       token = r.credential;
       if (ctx) { $('resignin').innerHTML = ''; $('sendErr').textContent = 'Session renouvelée : cliquez de nouveau sur « Envoyer ».'; return; }
       status('Vérification de votre adresse en cours…', true);
-      call({ action: 'context' }).then(x => {
+      call({ action: 'context' }).then(async x => {
         appliquerContexte(x);
+        reqId = makeReqId(await call({ action: 'newRequest' }));
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
         $('who').textContent = 'Connecté en tant que ' + nom_club;
       }).catch(e => status(e.message));
@@ -941,7 +940,7 @@
       // Renvoie la raison du refus d'un fichier, ou '' s'il est accepté
       const probleme = f =>
         pdf && !/\.pdf$/i.test(f.name) ? `« ${f.name} » n'est pas un PDF : seule la facture au format PDF est acceptée.` :
-          !pdf && !EXT_OK.includes(extension(f.name)) ? `« ${f.name} » : ce format n'est pas accepté (images dont HEIC, PDF, Word, Excel ou texte).` :
+          !pdf && !EXT_OK.includes(extension(f.name)) ? `« ${f.name} » : format refusé. Téléversez un PDF ou une image ; Word, Excel, CSV, texte et RTF ne sont pas intégrés au PDF.` :
             !f.size ? `« ${f.name} » est vide.` :
               f.size > MAX_BYTES ? `« ${f.name} » dépasse ${MAX_BYTES / 1048576} Mo.` : '';
 
@@ -1025,7 +1024,7 @@
     const CHAMPS_BENEF = [
       { key: 'prenom', label: 'Prénom associé au RIB du bénéficiaire', req: 'Indiquez le prénom associé au RIB.' },
       { key: 'nom', label: 'Nom associé au RIB du bénéficiaire', req: 'Indiquez le nom associé au RIB.' },
-      { key: 'mail', label: 'Adresse mail du bénéficiaire (si possible Gmail)', type: 'email', check: v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? '' : 'Cette adresse mail ne semble pas valide.' },
+      { key: 'mail', label: 'Adresse mail du bénéficiaire (obligatoire pour la signature)', type: 'email', req: 'Indiquez l’adresse e-mail du bénéficiaire : elle est nécessaire pour le circuit de signature.', check: v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? '' : 'Cette adresse mail ne semble pas valide.' },
       { key: 'tel', label: 'Numéro de téléphone du bénéficiaire', type: 'tel', check: v => /^\+?[\d .-]{9,20}$/.test(v) ? '' : 'Ce numéro de téléphone ne semble pas valide.' },
       { key: 'role', label: `Rôle dans l'AEn7 du bénéficiaire`, def: 'Membre AEn7' },
       { key: 'iban', label: 'IBAN du bénéficiaire', req: `Indiquez l'IBAN du bénéficiaire.`, check: checkIban, ph: 'FR76 …' }
@@ -1159,7 +1158,7 @@
 
     // Colonnes du suivi (les clés viennent de demandesSuivi_ côté serveur)
     const COLONNES_SUIVI = [
-      { key: 'id', titre: 'N° de demande', format: v => String(v).slice(0, 8).toUpperCase(), tip: true },
+      { key: 'id', titre: 'N° de demande', format: v => String(v == null ? '' : v), tip: true },
       { key: 'title', titre: 'Titre' },
       { key: 'amount', titre: 'Montant total', droite: true, format: v => eur(Math.round((+v || 0) * 100)) },
       { key: 'beneficiary', titre: 'Bénéficiaire / prestataire / club' },
@@ -1402,13 +1401,14 @@
           fileIds.push(dejaEnvoyes.get(f));
         }
         progression('Enregistrement de la demande…', 92);
+        if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Reconnectez-vous puis réessayez.');
         await call({
           action: 'submit', type, reqId, description: description.valeur(), fileIds,
           ...t.personne.valeur(),     // beneficiaryId + newBeneficiary
           ...t.donnees()              // champs propres au type
         });
         $('doneText').textContent = 'Votre demande de virement a bien été enregistrée.';
-        call({ action: 'context' }).then(appliquerContexte).catch(() => { /* on garde l'ancienne liste */ });
+        call({ action: 'context' }).then(async x => { appliquerContexte(x); reqId = makeReqId(await call({ action: 'newRequest' })); }).catch(() => { reqId = ''; /* l'allocation sera retentée après reconnexion */ });
         $('form').classList.add('hidden'); $('done').classList.remove('hidden'); window.scrollTo({ top: 0 });
       } catch (e) {
         console.error(e);
@@ -1424,7 +1424,7 @@
 
     // « Retour à l'accueil » : on réinitialise le formulaire puis on affiche l'écran d'accueil
     $('again').onclick = () => {
-      reqId = makeReqId();          // sinon le serveur répond « duplicate »
+      // Le prochain identifiant est alloué après l'enregistrement précédent.
       dejaEnvoyes.clear();
       document.querySelectorAll('input[name=type]').forEach(r => r.checked = false);
       choisirType(null);
@@ -1433,6 +1433,7 @@
       $('done').classList.add('hidden'); $('form').classList.remove('hidden'); window.scrollTo({ top: 0 });
     };
   </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
 </body>
 
 </html>
