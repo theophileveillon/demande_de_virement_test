@@ -509,6 +509,26 @@
     .lt-example { background:#f5f5f5; padding:.5rem .75rem; border-radius:6px; overflow:auto; font-size:.85em; }
     .lt-rules { margin:.5rem 0; padding-left:1.2rem; font-size:.9em; }
     .lt-json { width:100%; box-sizing:border-box; font-family:monospace; }
+  
+    /* ---- Accueil : actions, suivi, menu ⋮ ---- */
+    .accueil-actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.4rem; }
+    .suivi-tete { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .suivi-tete h3 { margin:0; }
+    .suivi-tete .btn { padding:.3rem .8rem; font-size:.9rem; }
+    .dots { border:1px solid var(--bd); background:#fff; width:2rem; height:2rem; cursor:pointer; font-size:1.2rem; line-height:1; color:var(--txt); }
+    .dots:hover { border-color:var(--pri); color:var(--pri2); }
+    .popmenu { position:fixed; z-index:60; background:#fff; border:1px solid var(--bd); box-shadow:0 4px 14px #0003; min-width:12rem; display:flex; flex-direction:column; }
+    .popmenu button { border:0; background:#fff; text-align:left; padding:.6rem .9rem; font:inherit; cursor:pointer; color:var(--txt); }
+    .popmenu button:hover { background:var(--pri-lt); }
+    .popmenu button.danger { color:var(--err); }
+    /* ---- Gestion des bénéficiaires / prestataires ---- */
+    .g-liste-ul { list-style:none; padding:0; margin:.4rem 0; }
+    .g-row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; border:1px solid var(--bd); padding:.5rem .7rem; margin:.3rem 0; }
+    .g-nom { font-weight:600; }
+    .g-det { color:var(--mut); flex:1; min-width:8rem; overflow-wrap:anywhere; }
+    .g-btns { display:flex; gap:.4rem; }
+    .g-btns .btn { padding:.3rem .7rem; font-size:.9rem; }
+    .secondaire { margin-top:.6rem; }
   </style>
 </head>
 
@@ -537,6 +557,7 @@
         <div id="resignin"></div>
         <p class="err" id="sendErr" role="alert"></p>
         <button type="button" class="btn big" id="send">Envoyer le formulaire</button>
+        <button type="button" class="btn ghost big secondaire" id="cancelSend">Annuler et retourner à l’accueil</button>
       </div>
     </form>
 
@@ -614,6 +635,7 @@
     let ctx = null;            // infos reçues du serveur (listes de bénéficiaires, limites…)
     let nom_club = '';          // nom du club/bureau de la personne connectée (pour le suivi)
     let reqId = makeReqId(null);
+    let modif = '', reqIdNouv = '';   // modif = demande en cours de modification ; reqIdNouv = numéro réservé pour la prochaine nouvelle demande
 
     // Réglages (le serveur peut les modifier à la connexion)
     let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024;
@@ -646,6 +668,7 @@
       listePrest.rafraichir(ctx.prest);
       menuClubs.rafraichir(ctx.list_club_bureau);   // liste des clubs/bureaux (TIC)
       tableSuivi.rafraichir(ctx.dem_suivi);
+      gestion.rafraichir(ctx.benef, ctx.prest);
       nom_club = ctx.club || '';
     }
 
@@ -718,6 +741,7 @@
       return {
         el, valider,
         valeur: () => champ.value.trim(),
+        remplir: v => { champ.value = v || ''; agrandir(); },
         vider: () => { champ.value = ''; montrerErreur(champ, msg, ''); agrandir(); }
       };
     }
@@ -743,6 +767,7 @@
       return {
         el, valider,
         valeur: () => brut() === '' ? null : +brut(),
+        remplir: v => { champ.value = v ? String(v).replace('.', ',') : ''; },
         vider: () => { champ.value = ''; montrerErreur(champ, msg, ''); }
       };
     }
@@ -787,7 +812,7 @@
           <p class="err lt-import-err" role="alert"></p>
         </div>
         <p class="total">Total : <strong>0,00 €</strong></p><p class="err" role="alert"></p></div>`);
-      const lignes = el.querySelector('.rows'), total = el.querySelector('strong'), msg = el.querySelector('.err:not(.lt-import-err)');
+      const lignes = el.querySelector('.rows'), total = el.querySelector('.total strong'), msg = el.querySelector('.err:not(.lt-import-err)');
       const titre = el.querySelector('h3');
       if (label) ecrireLabel(titre, label, obligatoire); else titre.remove();
 
@@ -907,7 +932,13 @@
 
       ajouterLigne();
 
-      return { el, valider, vider, valeur: () => [...lignes.children].map(lire).filter(remplie) };
+      const remplir = liste => {
+        lignes.innerHTML = '';
+        (liste || []).forEach(l => ajouterLigne({ nom: String(l.nom), qte: String(l.qte), pu: String(l.pu) }));
+        if (!lignes.children.length) ajouterLigne();
+        msg.textContent = '';
+      };
+      return { el, valider, vider, remplir, valeur: () => [...lignes.children].map(lire).filter(remplie) };
     }
 
     /* ---------- 3.4 Dépôt de fichiers ----------
@@ -965,7 +996,9 @@
           ? (pdf ? 'Ajoutez la facture au format PDF.' : 'Ajoutez au moins un justificatif (photo, PDF…).') : '');
         return !msg.textContent;
       }
-      return { el, valider, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
+      // Pièces déjà enregistrées côté serveur (modification d'une demande) : { id, name, size }
+      const precharger = items => { liste = (items || []).map(f => ({ name: f.name, size: f.size || 0, fileId: f.id })); avis = ''; dessiner(); };
+      return { el, valider, precharger, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
     }
 
     /* ---------- Menu déroulant simple ----------
@@ -994,6 +1027,7 @@
       return {
         el, valider, rafraichir,
         valeur: () => menu.value,
+        choisir: v => { menu.value = v || ''; },
         vider: () => { menu.selectedIndex = 0; montrerErreur(menu, msg, ''); }
       };
     }
@@ -1123,7 +1157,11 @@
       }
 
       rafraichir([]);
-      return { el, valider, valeur, vider, rafraichir };
+      function choisir(id) {                       // sélectionne une fiche existante (modification d'une demande)
+        if (!id || !liste.some(b => b.id === id)) return;
+        mode(false); menu.value = id;
+      }
+      return { el, valider, valeur, vider, rafraichir, choisir };
     }
 
 
@@ -1145,7 +1183,9 @@
       (lignes || []).forEach(l => {
         const tr = document.createElement('tr');
         colonnes.forEach(c => {
-          const td = document.createElement('td'), v = c.format ? c.format(l[c.key], l) : l[c.key];
+          const td = document.createElement('td');
+          if (c.cellule) { c.cellule(td, l); tr.append(td); return; }      // cellule entièrement personnalisée (menu d'actions…)
+          const v = c.format ? c.format(l[c.key], l) : l[c.key];
           td.textContent = v == null ? '' : v;
           if (c.droite) td.className = 'num';
           if (c.tip) td.title = l[c.key] || '';
@@ -1162,13 +1202,96 @@
       { key: 'title', titre: 'Titre' },
       { key: 'amount', titre: 'Montant total', droite: true, format: v => eur(Math.round((+v || 0) * 100)) },
       { key: 'beneficiary', titre: 'Bénéficiaire / prestataire / club' },
-      { key: 'status', titre: 'Statut', format: v => v || 'En attente de traitement' }
+      { key: 'status', titre: 'Statut', format: v => v || 'En attente de traitement' },
+      { key: 'actions', titre: '', cellule: celluleActions }
     ];
+
+    /* ---------- Actions sur une demande : menu « ⋮ » ---------- */
+    const erreurSession = e => e && e.code === 'AUTH' ? 'Votre session Google a expiré : rechargez la page pour vous reconnecter.' : (e && e.message) || 'Erreur inconnue.';
+    function infoAccueil(txt, neutre) { const p = $('msgAccueil'); p.textContent = txt || ''; p.style.color = neutre ? 'var(--mut)' : ''; }
+
+    // Un seul menu flottant (position fixe : il n'est pas rogné par le défilement horizontal du tableau)
+    const menuPopup = html('<div class="popmenu hidden" role="menu"></div>');
+    document.body.append(menuPopup);
+    let menuBouton = null;
+    function fermerMenu() { menuPopup.classList.add('hidden'); menuPopup.innerHTML = ''; menuBouton = null; }
+    function ouvrirMenu(bouton, items) {
+      if (menuBouton === bouton) { fermerMenu(); return; }
+      fermerMenu(); menuBouton = bouton;
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.setAttribute('role', 'menuitem'); b.textContent = it.libelle;
+        if (it.danger) b.className = 'danger';
+        b.onclick = () => { fermerMenu(); it.action(); };
+        menuPopup.append(b);
+      });
+      menuPopup.classList.remove('hidden');
+      const r = bouton.getBoundingClientRect(), h = menuPopup.offsetHeight;
+      menuPopup.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+      menuPopup.style.top = (r.bottom + h > window.innerHeight - 8 ? Math.max(8, r.top - h) : r.bottom) + 'px';
+    }
+    document.addEventListener('click', e => { if (!menuPopup.contains(e.target) && !e.target.closest('.dots')) fermerMenu(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') fermerMenu(); });
+    window.addEventListener('scroll', fermerMenu, { passive: true });
+    window.addEventListener('resize', fermerMenu);
+
+    // Cellule « ⋮ » d'une ligne : les droits (can.edit / can.cancel / can.pdf) viennent du serveur
+    function celluleActions(td, l) {
+      const can = l.can || {}, items = [];
+      if (can.edit) items.push({ libelle: 'Modifier', action: () => actionDemande('modifier', l) });
+      if (can.pdf) items.push({ libelle: 'Télécharger le PDF', action: () => actionDemande('pdf', l) });
+      if (can.cancel) items.push({ libelle: 'Annuler la demande', danger: true, action: () => actionDemande('annuler', l) });
+      if (!items.length) return;
+      const b = html('<button type="button" class="dots" aria-haspopup="menu"></button>');
+      b.textContent = '⋮'; b.setAttribute('aria-label', 'Actions pour la demande ' + l.id);
+      b.onclick = () => ouvrirMenu(b, items);
+      td.className = 'num'; td.append(b);
+    }
+
+    // Enregistre un PDF reçu en base64
+    function telecharger(nom, base64) {
+      const bin = atob(base64), octets = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) octets[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([octets], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = /\.pdf$/i.test(nom) ? nom : nom + '.pdf';
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    async function actualiserSuivi(bouton) {
+      bouton.disabled = true; infoAccueil('Actualisation…', true);
+      try {
+        const x = await call({ action: 'suivi' });
+        if (ctx) ctx.dem_suivi = x.dem_suivi;
+        tableSuivi.rafraichir(x.dem_suivi); infoAccueil('');
+      } catch (e) { infoAccueil(erreurSession(e)); }
+      finally { bouton.disabled = false; }
+    }
+
+    async function actionDemande(action, l) {
+      infoAccueil('');
+      try {
+        if (action === 'modifier') return await modifierDemande(l);
+        if (action === 'pdf') {
+          infoAccueil('Préparation du PDF…', true);
+          const r = await call({ action: 'pdf', reqId: l.id });
+          telecharger(r.name, r.data); infoAccueil('');
+        } else if (action === 'annuler') {
+          if (!confirm('Annuler la demande ' + l.id + ' ?\nLe circuit de signature est interrompu et les pièces sont supprimées. Cette action est définitive.')) return;
+          infoAccueil('Annulation en cours…', true);
+          const r = await call({ action: 'annuler', reqId: l.id });
+          if (ctx) ctx.dem_suivi = r.dem_suivi;
+          tableSuivi.rafraichir(r.dem_suivi); infoAccueil('Demande ' + l.id + ' annulée.', true);
+        }
+      } catch (e) { infoAccueil(erreurSession(e)); }
+    }
 
     // Composant : { el, rafraichir(lignes) }
     function suiviDemandes() {
-      const el = html('<div class="suivi-box"><h3>Mes demandes</h3><div class="suivi-scroll"></div></div>');
+      const el = html('<div class="suivi-box"><div class="suivi-tete"><h3>Mes demandes</h3><button type="button" class="btn ghost actualiser">↻ Actualiser</button></div><div class="suivi-scroll"></div></div>');
       const zone = el.querySelector('.suivi-scroll');
+      el.querySelector('.actualiser').onclick = e => actualiserSuivi(e.currentTarget);
       function rafraichir(lignes) {
         zone.innerHTML = '';
         if (!lignes || !lignes.length) { zone.append(html('<p class="mut">Aucune demande en cours.</p>')); return; }
@@ -1177,6 +1300,120 @@
       rafraichir([]);
       return { el, rafraichir };
     }
+    /* ---------- 3.7 Gestion des bénéficiaires / prestataires du club ----------
+       gestionPersonnes() -> { el, rafraichir(benef, prest), fermer() }
+       Modifier / retirer / ajouter ; les listes viennent du contexte serveur (appliquerContexte). */
+    function brancherIban(input) {     // met l'IBAN en forme (espace tous les 4 caractères) en gardant le curseur
+      input.addEventListener('input', () => {
+        const n = input.value.slice(0, input.selectionStart).replace(/\s/g, '').length;
+        input.value = fmtIban(input.value);
+        let i = 0, vus = 0;
+        while (i < input.value.length && vus < n) { if (input.value[i] !== ' ') vus++; i++; }
+        input.setSelectionRange(i, i);
+      });
+    }
+
+    function gestionPersonnes() {
+      const el = html(`<section class="card hidden" id="gestion">
+        <h2>Mes bénéficiaires et prestataires</h2>
+        <p class="mut">Retirer une fiche ne change pas vos demandes passées. Modifier l’IBAN crée une nouvelle fiche : l’ancienne n’est plus proposée mais reste attachée aux demandes déjà faites.</p>
+        <p class="err" role="alert"></p>
+        <div class="g-liste"></div>
+        <div class="g-editeur hidden"></div>
+        <p><button type="button" class="btn ghost g-retour">← Retour à l’accueil</button></p></section>`);
+      const liste = el.querySelector('.g-liste'), editeur = el.querySelector('.g-editeur'), msg = el.querySelector('.err');
+      const MOTS = { benef: 'bénéficiaire', prest: 'prestataire' };
+      let donnees = { benef: [], prest: [] };
+
+      function ligne(kind, it) {
+        const li = html('<li class="g-row"><span class="g-nom"></span><small class="g-det"></small><span class="g-btns"><button type="button" class="btn ghost mod">Modifier</button><button type="button" class="btn ghost sup">Retirer</button></span></li>');
+        li.querySelector('.g-nom').textContent = ((it.first || '') + ' ' + (it.last || '')).trim() || '(sans nom)';
+        li.querySelector('.g-det').textContent = [it.iban, kind === 'benef' ? it.mail : '', kind === 'benef' ? it.tel : ''].filter(Boolean).join(' · ');
+        li.querySelector('.mod').onclick = () => ouvrir(kind, it);
+        li.querySelector('.sup').onclick = () => retirer(kind, it);
+        return li;
+      }
+
+      function dessiner() {
+        liste.innerHTML = '';
+        ['benef', 'prest'].forEach(kind => {
+          const bloc = html('<div><h3></h3><ul class="g-liste-ul"></ul><button type="button" class="btn ghost ajout"></button></div>');
+          bloc.querySelector('h3').textContent = kind === 'benef' ? 'Bénéficiaires (membres)' : 'Prestataires';
+          const ul = bloc.querySelector('ul');
+          if (!donnees[kind].length) ul.append(html('<li class="mut">Aucune fiche pour le moment.</li>'));
+          donnees[kind].forEach(it => ul.append(ligne(kind, it)));
+          const ajout = bloc.querySelector('.ajout');
+          ajout.textContent = '+ Ajouter un ' + MOTS[kind];
+          ajout.onclick = () => ouvrir(kind, null);
+          liste.append(bloc);
+        });
+      }
+
+      function fermer() {
+        editeur.classList.add('hidden'); editeur.innerHTML = '';
+        liste.classList.remove('hidden'); msg.textContent = '';
+      }
+
+      // Formulaire d'ajout (item = null) ou de modification (item = fiche existante)
+      function ouvrir(kind, item) {
+        msg.textContent = '';
+        const champs = kind === 'prest' ? CHAMPS_PREST : CHAMPS_BENEF;
+        const init = item ? { prenom: item.first, nom: item.last, mail: item.mail, tel: item.tel, role: item.role } : {};
+        const saisies = {}, msgs = {};
+        editeur.innerHTML = '';
+        const titre = document.createElement('h3');
+        titre.textContent = (item ? 'Modifier un ' : 'Ajouter un ') + MOTS[kind];
+        editeur.append(titre);
+        champs.forEach(c => {
+          const ibanFacultatif = !!item && c.key === 'iban';        // en modification, IBAN vide = on garde l'actuel
+          const w = html(`<div><label class="f"></label><input type="${c.type || 'text'}" autocomplete="off" maxlength="${c.key === 'iban' ? 42 : 200}"><p class="err" role="alert"></p></div>`);
+          const input = w.querySelector('input');
+          ecrireLabel(w.querySelector('label'), c.label, !!c.req && !ibanFacultatif);
+          input.value = item ? (init[c.key] || c.def || '') : (c.def || '');
+          input.placeholder = ibanFacultatif ? 'Laisser vide pour conserver l’IBAN actuel (' + item.iban + ')' : (c.ph || '');
+          if (c.key === 'iban') brancherIban(input);
+          saisies[c.key] = input; msgs[c.key] = w.querySelector('.err');
+          editeur.append(w);
+        });
+        const verifier = c => {
+          const v = saisies[c.key].value.trim(), facultatif = !!item && c.key === 'iban';
+          return montrerErreur(saisies[c.key], msgs[c.key], !v ? (facultatif ? '' : (c.req || '')) : (c.check ? c.check(v) : ''));
+        };
+        champs.forEach(c => saisies[c.key].addEventListener('blur', () => verifier(c)));
+
+        const barre = html('<div class="lt-actions"><button type="button" class="btn g-ok">Enregistrer</button><button type="button" class="btn ghost g-non">Annuler</button></div>');
+        const ok = barre.querySelector('.g-ok');
+        barre.querySelector('.g-non').onclick = fermer;
+        ok.onclick = async () => {
+          if (!champs.map(c => verifier(c)).every(Boolean)) return;
+          const g = k => saisies[k] ? saisies[k].value.trim() : '';
+          ok.disabled = true; msg.textContent = '';
+          try {
+            const x = await call({
+              action: 'beneSave', kind, id: item ? item.id : '',
+              newBeneficiary: { prenom: g('prenom'), nom: g('nom'), mail: g('mail'), tel: g('tel'), role: g('role'), iban: g('iban').replace(/\s/g, '').toUpperCase() }
+            });
+            appliquerContexte(x); fermer();
+          } catch (e) { msg.textContent = erreurSession(e); }
+          finally { ok.disabled = false; }
+        };
+        editeur.append(barre);
+        liste.classList.add('hidden'); editeur.classList.remove('hidden');
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      async function retirer(kind, it) {
+        const nom = ((it.first || '') + ' ' + (it.last || '')).trim() || 'cette fiche';
+        if (!confirm('Retirer « ' + nom + ' » de la liste ?\nLes demandes déjà faites ne sont pas modifiées.')) return;
+        msg.textContent = '';
+        try { appliquerContexte(await call({ action: 'beneDelete', kind, id: it.id })); }
+        catch (e) { msg.textContent = erreurSession(e); }
+      }
+
+      el.querySelector('.g-retour').onclick = () => { fermer(); afficherEcran('accueil'); };
+      return { el, fermer, rafraichir: (b, p) => { donnees = { benef: b || [], prest: p || [] }; dessiner(); } };
+    }
+
     /* =====================================================================
        PARTIE 4 — LES CARTES (les « sections » du formulaire)
        carte('Titre', [ composants ou éléments… ], 'note facultative')
@@ -1281,6 +1518,15 @@
     };
     const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteClubs, carteBenef, cartePrest];
     const tableSuivi = suiviDemandes();
+    const gestion = gestionPersonnes();
+
+    // Pré-remplissage du formulaire à partir d'une demande existante (action « demande » du serveur)
+    const REMPLIR = {
+      NDF: d => { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); listeBenef.choisir(d.beneficiaryId); },
+      DSH: d => { raisonDSH.remplir(d.reason); tableauDSH.remplir(d.table); fichiersDSH.precharger(d.files); listeBenef.choisir(d.beneficiaryId); },
+      FAC: d => { libelleFac.remplir(d.label); montantFac.remplir(d.amount); fichierFac.precharger(d.files); listePrest.choisir(d.beneficiaryId); },
+      TIC: d => { montantTicket.remplir(d.amount); descTicket.remplir(d.reason); tableauTicket.remplir(d.table); fichiersTicket.precharger(d.files); menuClubs.choisir(d.club); }
+    };
     /* =====================================================================
        PARTIE 6 — AFFICHAGE : choix du type et montage de la page
        ===================================================================== */
@@ -1322,25 +1568,36 @@
     // --- Écran d'accueil : un simple bouton « Faire une demande » ---
     const ecranAccueil = html('<section class="card" id="accueil"></section>');
     const boutonDemande = html('<button type="button" class="btn" id="btnDemande">Faire une demande</button>');
-    ecranAccueil.append(boutonDemande, tableSuivi.el);
+    const boutonGestion = html('<button type="button" class="btn ghost" id="btnGestion">Gérer mes bénéficiaires et prestataires</button>');
+    const barreAccueil = html('<div class="accueil-actions"></div>');
+    barreAccueil.append(boutonDemande, boutonGestion);
+    const msgAccueil = html('<p class="err" id="msgAccueil" role="alert"></p>');
+    ecranAccueil.append(barreAccueil, msgAccueil, tableSuivi.el);
 
     // Le formulaire (choix du type + cartes)
     function afficherFormulaire(oui) {
-      ecranAccueil.classList.toggle('hidden', oui);
-      carteDebut.classList.toggle('hidden', !oui);
+      afficherEcran(oui ? 'formulaire' : 'accueil');
+    }
+    // Un seul écran à la fois : 'accueil' | 'formulaire' | 'gestion'
+    function afficherEcran(nom) {
+      ecranAccueil.classList.toggle('hidden', nom !== 'accueil');
+      carteDebut.classList.toggle('hidden', nom !== 'formulaire');
+      gestion.el.classList.toggle('hidden', nom !== 'gestion');
     }
     boutonDemande.addEventListener('click', () => {
       afficherFormulaire(true);
       carteDebut.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    $('sections').append(ecranAccueil, carteDebut, ...TOUTES_LES_CARTES.map(c => c.el));
+    $('sections').append(ecranAccueil, carteDebut, ...TOUTES_LES_CARTES.map(c => c.el), gestion.el);
     const eType = html('<p class="err" id="e-type" role="alert"></p>');
 
     // La description commune
     const boiteDesc = description.el;
     const indice = aide('Remplissez d\'abord la description pour pouvoir choisir un type.');
-    carteDebut.append(boiteDesc, indice, boiteType, eType);
+    const boutonRetour = html('<p><button type="button" class="btn ghost" id="retourAccueil">← Annuler et retourner à l’accueil</button></p>');
+    const banniereModif = html('<p class="warn hidden" id="banniereModif"></p>');
+    carteDebut.append(boutonRetour, banniereModif, boiteDesc, indice, boiteType, eType);
 
     function majVerrou() {
       const rempli = description.valeur().trim() !== '';
@@ -1397,18 +1654,24 @@
         for (let i = 0; i < fichiersAEnvoyer.length; i++) {
           const f = fichiersAEnvoyer[i];
           progression(`Envoi du fichier ${i + 1}/${fichiersAEnvoyer.length}…`, 10 + 80 * i / fichiersAEnvoyer.length);
-          if (!dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', type, reqId, name: f.name, data: await fichierEnBase64(f) })).fileId);
-          fileIds.push(dejaEnvoyes.get(f));
+          if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', type, reqId, name: f.name, data: await fichierEnBase64(f) })).fileId);
+          fileIds.push(f.fileId || dejaEnvoyes.get(f));       // f.fileId : pièce déjà enregistrée (modification)
         }
         progression('Enregistrement de la demande…', 92);
         if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Reconnectez-vous puis réessayez.');
         await call({
-          action: 'submit', type, reqId, description: description.valeur(), fileIds,
+          action: modif ? 'update' : 'submit', type, reqId, description: description.valeur(), fileIds,
           ...t.personne.valeur(),     // beneficiaryId + newBeneficiary
           ...t.donnees()              // champs propres au type
         });
-        $('doneText').textContent = 'Votre demande de virement a bien été enregistrée.';
-        call({ action: 'context' }).then(async x => { appliquerContexte(x); reqId = makeReqId(await call({ action: 'newRequest' })); }).catch(() => { reqId = ''; /* l'allocation sera retentée après reconnexion */ });
+        if (modif) {
+          $('doneText').textContent = 'Votre demande ' + modif + ' a bien été modifiée : le PDF est régénéré et le circuit de signature recommence (le bénéficiaire recevra un nouvel e-mail).';
+          quitterModification();     // rend le numéro réservé pour la prochaine nouvelle demande
+          call({ action: 'context' }).then(appliquerContexte).catch(() => { });
+        } else {
+          $('doneText').textContent = 'Votre demande de virement a bien été enregistrée.';
+          call({ action: 'context' }).then(async x => { appliquerContexte(x); reqId = makeReqId(await call({ action: 'newRequest' })); }).catch(() => { reqId = ''; /* l'allocation sera retentée après reconnexion */ });
+        }
         $('form').classList.add('hidden'); $('done').classList.remove('hidden'); window.scrollTo({ top: 0 });
       } catch (e) {
         console.error(e);
@@ -1423,13 +1686,65 @@
     };
 
     // « Retour à l'accueil » : on réinitialise le formulaire puis on affiche l'écran d'accueil
-    $('again').onclick = () => {
-      // Le prochain identifiant est alloué après l'enregistrement précédent.
+    /* =====================================================================
+       PARTIE 8 — RETOUR À L'ACCUEIL, ANNULATION ET MODIFICATION
+       ===================================================================== */
+
+    // Sort du mode « modification » : le numéro réservé pour une nouvelle demande est restitué
+    function quitterModification() {
+      if (modif) { reqId = reqIdNouv; modif = ''; }
+      $('banniereModif').classList.add('hidden');
+      boiteType.classList.remove('hidden');
+    }
+
+    // Remet tout à zéro et revient à l'accueil
+    function reinitialiserFormulaire() {
+      quitterModification();
       dejaEnvoyes.clear();
       document.querySelectorAll('input[name=type]').forEach(r => r.checked = false);
       choisirType(null);
-      description.vider();
-      afficherFormulaire(false);    // cache la carte « description + type », montre l'accueil
+      description.vider(); majVerrou();
+      afficherEcran('accueil');
+    }
+
+    // Annule la saisie en cours (nouvelle demande ou modification) ; les fichiers déjà téléversés sont supprimés côté serveur
+    function annulerSaisie() {
+      if (enCours) return;
+      if ((type || description.valeur()) && !confirm(modif
+        ? 'Abandonner la modification de la demande ' + modif + ' ? Les changements non envoyés seront perdus.'
+        : 'Annuler cette demande de virement ? Tout ce que vous avez saisi sera effacé.')) return;
+      const ids = [...dejaEnvoyes.values()], req = reqId;
+      reinitialiserFormulaire();
+      window.scrollTo({ top: 0 });
+      if (ids.length && req) call({ action: 'abandon', reqId: req, fileIds: ids }).catch(() => { });   // nettoyage au mieux (purgeTmp rattrape le reste)
+    }
+
+    // Charge une demande existante dans le formulaire (état SIGNATURE / ERREUR / ABANDONNEE uniquement : contrôlé par le serveur)
+    async function modifierDemande(l) {
+      infoAccueil('Chargement de la demande…', true);
+      const d = await call({ action: 'demande', reqId: l.id });
+      infoAccueil('');
+      reinitialiserFormulaire();
+      modif = d.id; reqIdNouv = reqId; reqId = d.id;
+      const radio = document.querySelector('input[name=type][value="' + d.type + '"]');
+      if (radio) radio.checked = true;
+      description.remplir(d.description);
+      choisirType(d.type);
+      REMPLIR[d.type](d);
+      $('banniereModif').textContent = 'Modification de la demande ' + d.id + ' : une fois envoyée, le PDF est régénéré et le circuit de signature recommence (le bénéficiaire recevra un nouvel e-mail).';
+      $('banniereModif').classList.remove('hidden');
+      boiteType.classList.add('hidden');            // le type d'une demande ne change pas
+      afficherEcran('formulaire');
+      window.scrollTo({ top: 0 });
+    }
+
+    $('retourAccueil').onclick = annulerSaisie;
+    $('cancelSend').onclick = annulerSaisie;
+    boutonGestion.addEventListener('click', () => { gestion.fermer(); afficherEcran('gestion'); window.scrollTo({ top: 0 }); });
+
+    // « Retour à l'accueil » après l'envoi
+    $('again').onclick = () => {
+      reinitialiserFormulaire();
       $('done').classList.add('hidden'); $('form').classList.remove('hidden'); window.scrollTo({ top: 0 });
     };
   </script>
