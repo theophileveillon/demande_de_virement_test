@@ -92,16 +92,6 @@
       font-weight: 600
     }
 
-    .tag {
-      display: block;
-      font-size: .78rem;
-      font-weight: 600;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--pri2);
-      margin-bottom: .2rem
-    }
-
     .mut {
       color: var(--mut);
       font-size: .92rem;
@@ -635,7 +625,7 @@
     let ctx = null;            // infos reçues du serveur (listes de bénéficiaires, limites…)
     let nom_club = '';          // nom du club/bureau de la personne connectée (pour le suivi)
     let reqId = makeReqId(null);
-    let modif = '', reqIdNouv = '';   // modif = demande en cours de modification ; reqIdNouv = numéro réservé pour la prochaine nouvelle demande
+    let modif = '', reqIdNouv = '';   // modif = demande en cours de modification ; reqIdNouv = numéro déjà alloué pour la prochaine nouvelle demande (ou '')
 
     // Réglages (le serveur peut les modifier à la connexion)
     let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024;
@@ -655,7 +645,6 @@
     }
 
     const status = (txt, neutre) => { $('status').textContent = txt || ''; $('status').style.color = neutre ? 'var(--mut)' : ''; };
-    const emailOf = t => { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || ''; } catch (e) { return ''; } };
 
     // Appelée par Google quand la personne s'est connectée
     // Applique les données reçues du serveur (à la connexion, puis après chaque envoi réussi)
@@ -677,9 +666,8 @@
       token = r.credential;
       if (ctx) { $('resignin').innerHTML = ''; $('sendErr').textContent = 'Session renouvelée : cliquez de nouveau sur « Envoyer ».'; return; }
       status('Vérification de votre adresse en cours…', true);
-      call({ action: 'context' }).then(async x => {
+      call({ action: 'context' }).then(x => {
         appliquerContexte(x);
-        reqId = makeReqId(await call({ action: 'newRequest' }));
         $('login').classList.add('hidden'); $('form').classList.remove('hidden');
         $('who').textContent = 'Connecté en tant que ' + nom_club;
       }).catch(e => status(e.message));
@@ -1421,7 +1409,6 @@
          il sera validé à l'envoi et vidé quand la carte disparaît.
        ===================================================================== */
 
-    const sousTitre = txt => html(`<h3>${txt}</h3>`);
     const aide = txt => html(`<p class="mut">${txt}</p>`);
 
     function carte(titre, contenu, note = '') {
@@ -1444,7 +1431,7 @@
     });
 
     // --- Textes d'aide réutilisés ---
-    const AIDE_FICHIERS = 'Images (HEIC, PDF, Word, Excel, texte...) : 10 fichiers maximum, 10 Mo chacun.';
+    const AIDE_FICHIERS = 'Photos ou PDF uniquement (JPEG, PNG, HEIC, WebP…) : 10 fichiers maximum, 10 Mo chacun. Les fichiers Word, Excel, CSV et texte ne sont pas acceptés.';
 
     // --- Composants propres à chaque type ---
     // (un titre = label ; l'étoile * apparaît toute seule quand la question est obligatoire)
@@ -1471,7 +1458,6 @@
     const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
     const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
     const menuClubs = menuListe({ label: 'Bureau ou club destinataire', erreur: 'Choisissez le bureau ou club destinataire.' });
-    const menuSuivi = menuListe({ label: 'Suivi des demandes', erreur: 'Il n\'y a pas de demandes.' });
 
     // --- Les cartes ---
     const carteNDF = carte('Note De Frais', [tableauNDF, fichiersNDF],
@@ -1603,7 +1589,6 @@
       const rempli = description.valeur().trim() !== '';
       const verrouille = !rempli && !type;          // si un type est déjà choisi, on ne bloque plus
       boiteType.querySelectorAll('input').forEach(r => r.disabled = verrouille);
-      boiteType.classList.toggle('locked', verrouille);
       indice.classList.toggle('hidden', !verrouille);
     }
     boiteDesc.addEventListener('input', majVerrou);
@@ -1650,6 +1635,9 @@
       // 2. Envoi : d'abord les fichiers un par un, puis la demande
       enCours = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progression('Préparation…', 5);
       try {
+        // Le numéro de demande est alloué à l'envoi (pas à la connexion) : pas de numéro perdu si on n'envoie rien.
+        if (!modif && !reqId) reqId = makeReqId(await call({ action: 'newRequest' }));
+        if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Reconnectez-vous puis réessayez.');
         const t = TYPES[type], fichiersAEnvoyer = t.fichiers.valeur(), fileIds = [];
         for (let i = 0; i < fichiersAEnvoyer.length; i++) {
           const f = fichiersAEnvoyer[i];
@@ -1658,7 +1646,6 @@
           fileIds.push(f.fileId || dejaEnvoyes.get(f));       // f.fileId : pièce déjà enregistrée (modification)
         }
         progression('Enregistrement de la demande…', 92);
-        if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Reconnectez-vous puis réessayez.');
         await call({
           action: modif ? 'update' : 'submit', type, reqId, description: description.valeur(), fileIds,
           ...t.personne.valeur(),     // beneficiaryId + newBeneficiary
@@ -1670,7 +1657,8 @@
           call({ action: 'context' }).then(appliquerContexte).catch(() => { });
         } else {
           $('doneText').textContent = 'Votre demande de virement a bien été enregistrée.';
-          call({ action: 'context' }).then(async x => { appliquerContexte(x); reqId = makeReqId(await call({ action: 'newRequest' })); }).catch(() => { reqId = ''; /* l'allocation sera retentée après reconnexion */ });
+          reqId = '';   // un nouveau numéro sera alloué au prochain envoi
+          call({ action: 'context' }).then(appliquerContexte).catch(() => { });
         }
         $('form').classList.add('hidden'); $('done').classList.remove('hidden'); window.scrollTo({ top: 0 });
       } catch (e) {
@@ -1719,7 +1707,7 @@
       if (ids.length && req) call({ action: 'abandon', reqId: req, fileIds: ids }).catch(() => { });   // nettoyage au mieux (purgeTmp rattrape le reste)
     }
 
-    // Charge une demande existante dans le formulaire (état SIGNATURE / ERREUR / ABANDONNEE uniquement : contrôlé par le serveur)
+    // Charge une demande existante dans le formulaire (état SIGNATURE / ERREUR uniquement : contrôlé par le serveur)
     async function modifierDemande(l) {
       infoAccueil('Chargement de la demande…', true);
       const d = await call({ action: 'demande', reqId: l.id });
