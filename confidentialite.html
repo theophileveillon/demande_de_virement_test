@@ -1,52 +1,1745 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Politique de confidentialité</title>
-    <style>
-      body {
-        font: 16px system-ui;
-        max-width: 700px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-        line-height: 1.6;
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Demande de virement – AEn7</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* ============ 1. THÈME : les couleurs ============ */
+    /* --pri = violet de l'association ; --pri2 = violet foncé (texte sur fond clair) */
+    :root {
+      --pri: #A569BD;
+      --pri2: #6C3483;
+      --pri-lt: #F6F0F9;
+      --bg: #fff;
+      --card: #fff;
+      --bd: #d9d9d9;
+      --txt: #222;
+      --mut: #666;
+      --err: #b3261e;
+      --ok: #1a7f4b
+    }
+
+    * {
+      box-sizing: border-box;
+      border-radius: 0
+    }
+
+    /* aucun arrondi nulle part */
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--txt);
+      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    /* ============ 2. EN-TÊTE (logo + titre) ============ */
+    .hero {
+      text-align: center;
+      padding: 2rem 1rem 1.5rem;
+      border-bottom: 4px solid var(--pri)
+    }
+
+    .hero img {
+      height: 80px;
+      max-width: 80%;
+      object-fit: contain;
+      margin-bottom: .8rem
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      font-weight: 600
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin: .6rem auto 0;
+      color: var(--mut)
+    }
+
+    main {
+      max-width: 760px;
+      margin: 1.5rem auto 2rem;
+      padding: 0 1rem
+    }
+
+    /* ============ 3. SECTIONS ============ */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-top: 3px solid var(--pri);
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1.2rem
+    }
+
+    .card h2 {
+      margin: 0 0 .4rem;
+      font-size: 1.25rem;
+      font-weight: 600
+    }
+
+    .card h3 {
+      margin: 1.4rem 0 .3rem;
+      font-size: 1.02rem;
+      font-weight: 600
+    }
+
+    .mut {
+      color: var(--mut);
+      font-size: .92rem;
+      margin: .2rem 0 .6rem
+    }
+
+    .warn {
+      border: 1px solid var(--pri);
+      background: var(--pri-lt);
+      padding: .7rem .9rem;
+      font-weight: 600;
+      margin: 0 0 1rem
+    }
+
+    .note {
+      background: var(--pri-lt);
+      border-left: 3px solid var(--pri);
+      padding: .6rem .9rem;
+      margin: .6rem 0
+    }
+
+    /* ============ 4. CHAMPS + MESSAGES D'ERREUR ============ */
+    label.f {
+      display: block;
+      margin: 1rem 0 .25rem;
+      font-weight: 600
+    }
+
+    .req {
+      color: var(--err);
+      font-weight: 700
+    }
+
+    /* l'astérisque des questions obligatoires */
+    input[type=text],
+    input[type=email],
+    input[type=tel],
+    input[type=number],
+    select,
+    textarea {
+      width: 100%;
+      padding: .55rem .65rem;
+      border: 1px solid #bbb;
+      font: inherit;
+      background: #fff;
+      color: var(--txt)
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 2px solid var(--pri);
+      outline-offset: 0;
+      border-color: var(--pri)
+    }
+
+    .bad {
+      border-color: var(--err) !important
+    }
+
+    /* champ en erreur */
+    .err {
+      color: var(--err);
+      font-size: .88rem;
+      min-height: 1.1em;
+      margin: .25rem 0 0
+    }
+
+    /* message sous le champ */
+    fieldset {
+      border: 0;
+      padding: 0;
+      margin: 1rem 0 0
+    }
+
+    legend {
+      font-weight: 600;
+      padding: 0 0 .3rem
+    }
+
+    .choice {
+      display: flex;
+      gap: .7rem;
+      align-items: center;
+      border: 1px solid var(--bd);
+      padding: .65rem .9rem;
+      margin: .4rem 0;
+      cursor: pointer
+    }
+
+    .choice input {
+      accent-color: var(--pri2)
+    }
+
+    .choice:has(input:checked) {
+      border-color: var(--pri);
+      background: var(--pri-lt)
+    }
+
+    /* ============ 5. BOUTONS ============ */
+    .btn {
+      display: inline-block;
+      border: 1px solid var(--pri);
+      padding: .55rem 1.1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--pri);
+      color: #fff
+    }
+
+    .btn.ghost {
+      background: #fff;
+      color: var(--pri2)
+    }
+
+    .btn:hover {
+      background: var(--pri2);
+      border-color: var(--pri2);
+      color: #fff
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: wait
+    }
+
+    .btn.big {
+      width: 100%;
+      padding: .85rem;
+      font-size: 1.05rem
+    }
+
+    /* ============ 6. TABLEAU NDF / DSH ============ */
+    .lt-head,
+    .lt-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1.3fr 1fr 2.2rem;
+      gap: .5rem;
+      align-items: center
+    }
+
+    .lt-head {
+      font-weight: 600;
+      font-size: .85rem;
+      color: var(--mut)
+    }
+
+    .lt-row {
+      margin: .4rem 0
+    }
+
+    .lt-row label span {
+      position: absolute;
+      left: -9999px
+    }
+
+    .lt-row .line {
+      text-align: right;
+      font-weight: 600
+    }
+
+    .x {
+      border: 1px solid var(--bd);
+      background: #fff;
+      color: var(--mut);
+      height: 2.2rem;
+      font-size: 1.1rem;
+      cursor: pointer
+    }
+
+    .x:hover {
+      border-color: var(--err);
+      color: var(--err)
+    }
+
+    .total {
+      text-align: right;
+      font-size: 1.1rem;
+      margin: .8rem 0 0
+    }
+
+    .total .neg {
+      color: var(--err)
+    }
+
+    @media (max-width:640px) {
+
+      /* mobile : une ligne = un bloc */
+      .lt-head {
+        display: none
       }
-    </style>
-  </head>
-  <body>
-    <h1>Politique de confidentialité</h1>
 
-    <p>Cette application traite les demandes de virement des bureaux et clubs de l’Association des élèves de l’ENSEEIHT (AEn7).</p>
+      .lt-row {
+        grid-template-columns: 1fr 1fr 2.2rem;
+        padding: .6rem;
+        border: 1px solid var(--bd)
+      }
 
-    <h2>Responsable du traitement</h2>
-    <p>
-      Association des élèves de l’ENSEEIHT<br>
-      2 rue Charles Camichel<br>
-      31071 Toulouse CEDEX 7<br>
-      <a href="mailto:tresorerie.aen7@gmail.com">tresorerie.aen7@gmail.com</a>
-    </p>
+      .lt-row label:first-child {
+        grid-column: 1/-1
+      }
 
-    <h2>Données traitées</h2>
-    <p>Adresse e-mail Google du compte connecté (vérifiée par Google), nom du bureau ou club, informations des bénéficiaires (nom, prénom, adresse e-mail, téléphone, rôle, IBAN) et des prestataires (nom, IBAN), demandes de virement et justificatifs (factures, tickets, photos, PDF), documents générés et signés.</p>
+      .lt-row label span {
+        position: static;
+        display: block;
+        font-size: .8rem;
+        color: var(--mut)
+      }
 
-    <h2>Finalités</h2>
-    <p>Ces données servent à contrôler et traiter les virements, à faire signer les notes de frais et déclarations sur l’honneur par le bénéficiaire puis par le bureau ou club, et à satisfaire les obligations comptables de l’association.</p>
+      .lt-row .x {
+        grid-column: 3;
+        grid-row: 2
+      }
 
-    <h2>Destinataires et sous-traitants</h2>
-    <p>Les données sont accessibles à la trésorerie de l’AEn7. Elles sont hébergées et traitées par Google (connexion Google, Google Drive, Sheets, Docs, Forms, Apps Script et envoi d’e-mails). Le document à signer, qui contient notamment l’IBAN du bénéficiaire, lui est envoyé par e-mail. Le site est diffusé via Cloudflare, qui mesure l’audience de façon anonyme.</p>
+      .lt-row .line {
+        grid-column: 1/-1
+      }
+    }
 
-    <h2>Conservation</h2>
-    <p>
-      Les fichiers téléversés pour une demande restent dans un dossier de travail jusqu’à la finalisation ou l’annulation de la demande, puis sont supprimés. Les fichiers d’une demande jamais envoyée sont supprimés automatiquement, au plus tard 7 jours après leur création (nettoyage quotidien). Les réponses aux formulaires de signature sont supprimées dès que l’étape correspondante est validée.
-      Les documents finalisés (PDF signés, factures) sont conservés pendant la durée nécessaire à l’association et les délais comptables applicables (10 ans pour les pièces comptables).
-    </p>
+    /* ============ 7. LISTE DES FICHIERS ============ */
+    .files {
+      list-style: none;
+      padding: 0;
+      margin: .5rem 0 0
+    }
 
-    <h2>Droits</h2>
-    <p>Vous pouvez exercer vos droits d’accès, de rectification, d’effacement, d’opposition et de limitation en écrivant à l’adresse ci-dessus. Vous pouvez aussi retirer un bénéficiaire ou un prestataire depuis l’écran « Mes bénéficiaires et prestataires » de l’application. Une réclamation peut être adressée à la CNIL (<a href="https://www.cnil.fr">cnil.fr</a>).</p>
+    .files li {
+      display: flex;
+      gap: .6rem;
+      align-items: center;
+      border: 1px solid var(--bd);
+      padding: .3rem .3rem .3rem .7rem;
+      margin: .3rem 0
+    }
 
-    <p><a href="index.html">Retour au formulaire</a></p>
-    
-    <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
-  </body>
+    .files li span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .files li small {
+      color: var(--mut)
+    }
+
+    .files .x {
+      height: 1.9rem;
+      width: 1.9rem
+    }
+
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap
+    }
+
+    /* champ fichier : focalisable au clavier */
+    label.btn {
+      position: relative
+    }
+
+    label.btn:focus-within {
+      outline: 2px solid var(--pri2);
+      outline-offset: 2px
+    }
+
+    /* ============ 8. ANIMATION D'ENVOI ============ */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: #000a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+      padding: 1rem
+    }
+
+    #overlay .box {
+      background: #fff;
+      border-top: 4px solid var(--pri);
+      padding: 1.8rem;
+      max-width: 440px;
+      width: 100%
+    }
+
+    #overlay h2 {
+      margin: 0 0 .5rem;
+      font-size: 1.2rem
+    }
+
+    .bar {
+      height: 12px;
+      background: var(--pri-lt);
+      border: 1px solid var(--bd);
+      margin: 1rem 0 .6rem;
+      overflow: hidden
+    }
+
+    /* barre à rayures qui défilent : montre que ça travaille même pendant un long envoi */
+    .bar i {
+      display: block;
+      height: 100%;
+      width: 0;
+      transition: width .4s;
+      background: repeating-linear-gradient(45deg, var(--pri) 0 10px, var(--pri2) 10px 20px);
+      background-size: 28px 28px;
+      animation: move 1s linear infinite
+    }
+
+    @keyframes move {
+      to {
+        background-position: 28px 0
+      }
+    }
+
+    .done {
+      text-align: center
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: .9rem
+    }
+
+    footer a {
+      color: var(--pri2)
+    }
+
+    textarea {
+      resize: none;
+      overflow: hidden
+    }
+
+    /* Panneau qui se plie/déplie en douceur (sans connaître sa hauteur) */
+    .slide {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows .3s ease, opacity .3s ease
+    }
+
+    .slide.closed {
+      grid-template-rows: 0fr;
+      opacity: 0;
+      pointer-events: none
+    }
+
+    .slide>div {
+      min-height: 0;
+      overflow: hidden;
+      padding: 3px;
+      margin: -3px
+    }
+
+    /* 3px = place pour l'outline de focus */
+    .toggle {
+      margin-top: .4rem
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide {
+        transition: none
+      }
+    }
+
+    .suivi-box {
+      margin-top: 1.5rem;
+    }
+
+    .suivi-scroll {
+      overflow-x: auto;
+    }
+
+    table.suivi {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .9rem;
+    }
+
+    table.suivi th,
+    table.suivi td {
+      padding: .5rem .6rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    table.suivi th {
+      color: var(--mut);
+      font-weight: 600;
+    }
+
+    table.suivi .num {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .lt-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0; }
+    .lt-import { border:1px solid #ccc; border-radius:8px; padding:.75rem; margin:.5rem 0; }
+    .lt-example { background:#f5f5f5; padding:.5rem .75rem; border-radius:6px; overflow:auto; font-size:.85em; }
+    .lt-rules { margin:.5rem 0; padding-left:1.2rem; font-size:.9em; }
+    .lt-json { width:100%; box-sizing:border-box; font-family:monospace; }
+  
+    /* ---- Accueil : actions, suivi, menu ⋮ ---- */
+    .accueil-actions { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.4rem; }
+    .suivi-tete { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .suivi-tete h3 { margin:0; }
+    .suivi-tete .btn { padding:.3rem .8rem; font-size:.9rem; }
+    .dots { border:1px solid var(--bd); background:#fff; width:2rem; height:2rem; cursor:pointer; font-size:1.2rem; line-height:1; color:var(--txt); }
+    .dots:hover { border-color:var(--pri); color:var(--pri2); }
+    .popmenu { position:fixed; z-index:60; background:#fff; border:1px solid var(--bd); box-shadow:0 4px 14px #0003; min-width:12rem; display:flex; flex-direction:column; }
+    .popmenu button { border:0; background:#fff; text-align:left; padding:.6rem .9rem; font:inherit; cursor:pointer; color:var(--txt); }
+    .popmenu button:hover { background:var(--pri-lt); }
+    .popmenu button.danger { color:var(--err); }
+    /* ---- Gestion des bénéficiaires / prestataires ---- */
+    .g-liste-ul { list-style:none; padding:0; margin:.4rem 0; }
+    .g-row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; border:1px solid var(--bd); padding:.5rem .7rem; margin:.3rem 0; }
+    .g-nom { font-weight:600; }
+    .g-det { color:var(--mut); flex:1; min-width:8rem; overflow-wrap:anywhere; }
+    .g-btns { display:flex; gap:.4rem; }
+    .g-btns .btn { padding:.3rem .7rem; font-size:.9rem; }
+    .secondaire { margin-top:.6rem; }
+  </style>
+</head>
+
+<body>
+  <header class="hero">
+    <img src="logo_AE.png" alt="Logo de l'AEn7" onerror="this.remove()">
+    <h1>Demande de virement</h1>
+    <p>Ce formulaire permet de faire une demande de virement depuis le compte bancaire de l'AEn7 vers un tiers :
+      un membre de l'AEn7 (via une note de frais ou une déclaration sur l'honneur), un prestataire extérieur (via une
+      facture) ou un Bureau/Club de l'AEn7 via un Ticket interne.</p>
+  </header>
+
+  <main>
+    <section class="card" id="login">
+      <p class="warn">/!\ Utilisez le mail de la trésorerie de votre bureau ou club, sinon la connexion ne fonctionnera
+        pas. /!\</p>
+      <div id="signin"></div>
+      <p id="status" class="err" role="alert"></p>
+    </section>
+
+    <!-- Le contenu du formulaire (#sections) est fabriqué par le JavaScript -->
+    <form id="form" class="hidden" novalidate autocomplete="off">
+      <p class="mut" id="who"></p>
+      <div id="sections"></div>
+      <div id="sendBar" class="hidden">
+        <div id="resignin"></div>
+        <p class="err" id="sendErr" role="alert"></p>
+        <button type="button" class="btn big" id="send">Envoyer le formulaire</button>
+        <button type="button" class="btn ghost big secondaire" id="cancelSend">Annuler et retourner à l’accueil</button>
+      </div>
+    </form>
+
+    <section class="card done hidden" id="done">
+      <h2>Demande envoyée</h2>
+      <p id="doneText"></p>
+      <button type="button" class="btn" id="again">Retour à l'accueil</button>
+    </section>
+  </main>
+
+  <div id="overlay" class="hidden" role="alertdialog" aria-live="assertive">
+    <div class="box">
+      <h2>Envoi en cours…</h2>
+      <p id="sendMsg"></p>
+      <div class="bar"><i id="barFill"></i></div>
+      <p class="mut">Cela peut prendre un moment. Merci de ne pas fermer cette page.</p>
+    </div>
+  </div>
+
+  <footer><a href="confidentialite.html">Politique de confidentialité</a></footer>
+
+  <script>
+    /* =====================================================================
+       PARTIE 1 — PETITS OUTILS (utilisés partout)
+       ===================================================================== */
+
+    // Raccourci : $('monId') = document.getElementById('monId')
+    const $ = id => document.getElementById(id);
+
+    // Transforme un texte HTML en vrai élément de la page
+    const html = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
+
+    // Donne un identifiant unique (pour relier un <label> à son champ)
+    let compteurId = 0;
+    const nouvelId = () => 'champ' + (++compteurId);
+
+    // 1250 centimes -> "12,50 €"
+    const eur = c => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    // Vrai si le nombre a plus de 2 décimales
+    const plusDeCentimes = v => Math.abs(v * 100 - Math.round(v * 100)) > 1e-6;
+    // "photo.JPG" -> "jpg"
+    const extension = nom => (nom.match(/\.([A-Za-z0-9]+)$/) || ['', ''])[1].toLowerCase();
+
+    // Identifiant unique d'une demande (regroupe les fichiers et la ligne du sheet)
+    // L'identifiant DEM-XXXX est alloué par le serveur sous verrou.
+    function makeReqId(reponse) { return reponse && reponse.reqId ? reponse.reqId : ''; }
+
+    // Affiche ou efface une erreur sous un champ.
+    //   champ   = le <input>/<select>/<textarea>   (il devient rouge)
+    //   zoneMsg = le <p class="err"> sous le champ
+    //   message = le texte d'erreur, ou '' si tout va bien
+    // Retourne true si le champ est valide.
+    function montrerErreur(champ, zoneMsg, message) {
+      zoneMsg.textContent = message;
+      champ.classList.toggle('bad', !!message);
+      if (message) champ.setAttribute('aria-invalid', 'true');
+      else champ.removeAttribute('aria-invalid');
+      return !message;
+    }
+
+    // Écrit le texte d'un <label> ou d'un <h3>, avec une étoile rouge si la question est obligatoire
+    function ecrireLabel(element, texte, obligatoire) {
+      element.textContent = texte;
+      if (obligatoire) element.append(html('<span class="req"> *</span>'));
+    }
+
+    /* =====================================================================
+       PARTIE 2 — CONNEXION AU SERVEUR (Google + Apps Script)
+       ===================================================================== */
+
+    const API = 'https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec';
+    const CLIENT_ID = '994925786413-u4o4bhddtdo790t4utmd9tl2hqmj7s4s.apps.googleusercontent.com';
+
+    let token = '';            // jeton Google : prouve qui vous êtes au serveur
+    let ctx = null;            // infos reçues du serveur (listes de bénéficiaires, limites…)
+    let nom_club = '';          // nom du club/bureau de la personne connectée (pour le suivi)
+    let reqId = makeReqId(null);
+    let modif = '', reqIdNouv = '';   // modif = demande en cours de modification ; reqIdNouv = numéro déjà alloué pour la prochaine nouvelle demande (ou '')
+
+    // Réglages (le serveur peut les modifier à la connexion)
+    let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024;
+    let EXT_OK = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp', 'tif', 'tiff', 'avif', 'pdf'];
+
+    // Envoie un message au serveur et attend sa réponse
+    async function call(payload) {
+      let j;
+      const stop = new AbortController(), minuteur = setTimeout(() => stop.abort(), 180000);   // 3 min maximum par appel
+      try {
+        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, idToken: token }), signal: stop.signal });
+        j = await r.json();
+      } catch (_) { throw Error('Impossible de joindre le serveur (ou délai dépassé) : vérifiez votre connexion puis réessayez.'); }
+      finally { clearTimeout(minuteur); }
+      if (!j.ok) { const e = Error(j.error || 'Erreur serveur'); e.code = j.code; throw e; }
+      return j;
+    }
+
+    const status = (txt, neutre) => { $('status').textContent = txt || ''; $('status').style.color = neutre ? 'var(--mut)' : ''; };
+
+    // Appelée par Google quand la personne s'est connectée
+    // Applique les données reçues du serveur (à la connexion, puis après chaque envoi réussi)
+    function appliquerContexte(x) {
+      ctx = x;
+      if (ctx.maxFiles) MAX_FILES = ctx.maxFiles;
+      if (ctx.maxBytes) MAX_BYTES = ctx.maxBytes;
+      if (Array.isArray(ctx.extOk)) EXT_OK = ctx.extOk;
+      listeBenef.rafraichir(ctx.benef);      // remplit les menus déroulants
+      listePrest.rafraichir(ctx.prest);
+      menuClubs.rafraichir(ctx.list_club_bureau);   // liste des clubs/bureaux (TIC)
+      tableSuivi.rafraichir(ctx.dem_suivi);
+      gestion.rafraichir(ctx.benef, ctx.prest);
+      nom_club = ctx.club || '';
+      // Masque les types de demande que le serveur déclare indisponibles (ex. TIC sans modèle configuré)
+      if (Array.isArray(ctx.typesDisponibles)) boiteType.querySelectorAll('input[name=type]').forEach(r =>
+        r.closest('label').classList.toggle('hidden', !ctx.typesDisponibles.includes(r.value)));
+    }
+
+    // Appelée par Google quand la personne s'est connectée
+    function credential(r) {
+      token = r.credential;
+      if (ctx) { $('resignin').innerHTML = ''; $('sendErr').textContent = 'Session renouvelée : cliquez de nouveau sur « Envoyer ».'; return; }
+      status('Vérification de votre adresse en cours…', true);
+      call({ action: 'context' }).then(x => {
+        appliquerContexte(x);
+        $('login').classList.add('hidden'); $('form').classList.remove('hidden');
+        $('who').textContent = 'Connecté en tant que ' + nom_club;
+      }).catch(e => status(e.message));
+    }
+
+    // Affiche le bouton « Se connecter avec Google » dès que la bibliothèque est chargée
+    window.addEventListener('load', () => {
+      let essais = 0;
+      const init = () => {
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.initialize({ client_id: CLIENT_ID, callback: credential });
+          google.accounts.id.renderButton($('signin'), { theme: 'outline', size: 'large' });
+          return;
+        }
+        if (++essais < 20) return setTimeout(init, 250);
+        status('Impossible de charger la connexion Google.');
+      };
+      init();
+    });
+
+    /* =====================================================================
+       PARTIE 3 — LES COMPOSANTS
+       Chaque fonction ci-dessous construit UN type d'élément de formulaire.
+       Toutes renvoient le même genre d'objet :
+         {
+           el        : l'élément HTML à afficher
+           valider() : vérifie le champ, affiche l'erreur, renvoie true/false
+           valeur()  : renvoie ce que la personne a saisi
+           vider()   : remet le champ à zéro
+         }
+       ===================================================================== */
+
+    /* ---------- 3.1 Zone de texte ----------
+       zoneTexte({ label:'…', placeholder:'…', erreur:'…', max:300 })
+       - erreur : message si vide. Si on ne met pas d'erreur, le champ est facultatif. */
+    function zoneTexte({ label, placeholder = '', erreur = '', max = 0 }) {
+      const id = nouvelId();
+      const el = html(`<div><label class="f" for="${id}"></label>
+        <textarea id="${id}" rows="2"></textarea><p class="err" role="alert"></p></div>`);
+      const champ = el.querySelector('textarea'), msg = el.querySelector('.err');
+      ecrireLabel(el.querySelector('label'), label, !!erreur);   // étoile si une erreur est prévue = obligatoire
+      champ.placeholder = placeholder;
+      if (max) champ.maxLength = max;
+
+      // La zone grandit toute seule avec le texte (pas de barre de défilement)
+      const agrandir = () => {
+        if (!champ.offsetParent) return;                 // caché : on ne peut pas mesurer
+        champ.style.height = 'auto';
+        champ.style.height = champ.scrollHeight + (champ.offsetHeight - champ.clientHeight) + 'px';
+      };
+      let largeur = 0;
+      new ResizeObserver(() => { if (champ.offsetWidth !== largeur) { largeur = champ.offsetWidth; agrandir(); } }).observe(champ);
+
+      champ.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });   // pas de saut de ligne
+      const valider = () => montrerErreur(champ, msg, (!erreur || champ.value.trim()) ? '' : erreur);
+      champ.addEventListener('blur', valider);
+      champ.addEventListener('input', () => { agrandir(); if (msg.textContent) valider(); });
+
+      return {
+        el, valider,
+        valeur: () => champ.value.trim(),
+        remplir: v => { champ.value = v || ''; agrandir(); },
+        vider: () => { champ.value = ''; montrerErreur(champ, msg, ''); agrandir(); }
+      };
+    }
+
+    /* ---------- 3.2 Montant en euros ----------
+       montant({ label:'…', erreur:'…' })   valeur() -> 12.5 (nombre) ou null */
+    function montant({ label, erreur }) {
+      const id = nouvelId();
+      const el = html(`<div><label class="f" for="${id}"></label>
+        <input type="text" id="${id}" inputmode="decimal" placeholder="0,00"><p class="err" role="alert"></p></div>`);
+      const champ = el.querySelector('input'), msg = el.querySelector('.err');
+      ecrireLabel(el.querySelector('label'), label, true);
+
+      const brut = () => champ.value.trim().replace(',', '.');
+      const valider = () => montrerErreur(champ, msg, /^\d+(\.\d{1,2})?$/.test(brut()) && +brut() > 0 ? '' : erreur);
+
+      champ.addEventListener('input', () => {
+        champ.value = champ.value.replace(/[^\d.,]/g, '');   // on n'accepte que chiffres , et .
+        if (msg.textContent) valider();
+      });
+      champ.addEventListener('blur', valider);
+
+      return {
+        el, valider,
+        valeur: () => brut() === '' ? null : +brut(),
+        remplir: v => { champ.value = v ? String(v).replace('.', ',') : ''; },
+        vider: () => { champ.value = ''; montrerErreur(champ, msg, ''); }
+      };
+    }
+
+    /* ---------- 3.3 Tableau de lignes (nom / quantité / prix) ----------
+       tableau({ label:'Titre du tableau' })   (toujours obligatoire, donc étoile)
+       valeur() -> [{nom, qte, pu}, …]
+
+       Nouveau : bouton « Importer un JSON » pour remplir le tableau d'un coup
+       (JSON généré par une IA côté utilisateur). */
+    function tableau({ label = '', obligatoire = true } = {}) {
+      const EXEMPLE_JSON = `[
+        { "nom": "Farine",            "qte": 2,   "pu": 1.45 },
+        { "nom": "Huile d'olive",     "qte": 0.5,  "pu": 8.9 },
+        { "nom": "Sel",               "qte": "3",  "pu": "0,80" },
+        { "nom": "Réduction fidélité","qte": 1,   "pu": -5 }
+      ]`;
+      const MAX_LIGNES = 200;
+
+      const el = html(`<div><h3></h3>
+        <div class="lt-head"><span>Nom</span><span>Quantité</span><span>Prix unitaire</span><span style="text-align:right">Total</span><span></span></div>
+        <div class="rows"></div>
+        <div class="lt-actions">
+          <button type="button" class="btn ghost add">+ Ajouter une ligne</button>
+          <button type="button" class="btn ghost import-toggle" aria-expanded="false">Importer un JSON</button>
+        </div>
+        <div class="lt-import" hidden>
+          <p><strong>Format attendu</strong> : une liste de lignes avec <code>nom</code>, <code>qte</code> et <code>pu</code>. Exemple :</p>
+          <pre class="lt-example"></pre>
+          <ul class="lt-rules">
+            <li><code>qte</code> doit être strictement positive (les décimales sont acceptées : <code>0.5</code>).</li>
+            <li><code>pu</code> : 2 décimales maximum ; une valeur négative est acceptée (réduction).</li>
+            <li>Les nombres peuvent être écrits sans guillemets, ou entre guillemets avec une virgule (<code>"0,80"</code>).</li>
+            <li>Les blocs de code Markdown (<code>\`\`\`json</code>) éventuellement ajoutés par l'IA sont ignorés.</li>
+            <li>L'import remplace les lignes actuelles ; vous pourrez ensuite les modifier à la main.</li>
+          </ul>
+          <textarea class="lt-json" rows="8" spellcheck="false" placeholder="Collez ici le JSON…"></textarea>
+          <div class="lt-actions">
+            <button type="button" class="btn lt-apply">Remplir le tableau</button>
+            <button type="button" class="btn ghost lt-cancel">Annuler</button>
+          </div>
+          <p class="err lt-import-err" role="alert"></p>
+        </div>
+        <p class="total">Total : <strong>0,00 €</strong></p><p class="err" role="alert"></p></div>`);
+      const lignes = el.querySelector('.rows'), total = el.querySelector('.total strong'), msg = el.querySelector('.err:not(.lt-import-err)');
+      const titre = el.querySelector('h3');
+      if (label) ecrireLabel(titre, label, obligatoire); else titre.remove();
+
+      // Lit une ligne du tableau -> { nom, qte, pu }
+      const decimal = v => { if (v === '') return ''; const n = Number(v); if (!isFinite(n)) return v; const s = String(n); return /e/i.test(s) ? n.toFixed(10).replace(/\.?0+$/, '') : s; };
+      const lire = l => ({ nom: l.querySelector('.name').value.trim(), qte: decimal(l.querySelector('.qty').value), pu: decimal(l.querySelector('.price').value) });
+      const remplie = l => l.nom || l.qte || l.pu;
+      // Même formule que le serveur (Code.gs › parseTable_) : prix arrondi au centime, puis quantité × centimes
+      const centimes = l => Math.round((+l.qte || 0) * Math.round((+l.pu || 0) * 100));
+
+      // Met à jour les totaux affichés
+      function recalculer() {
+        let somme = 0;
+        [...lignes.children].forEach(div => { const c = centimes(lire(div)); div.querySelector('.line').textContent = eur(c); somme += c; });
+        total.textContent = eur(somme);
+        total.classList.toggle('neg', somme < 0);
+        return somme;
+      }
+
+      // Contrôle tout le tableau ; renvoie le message d'erreur ('' si OK)
+      function message() {
+        const toutes = [...lignes.children].map(lire), utiles = toutes.filter(remplie), somme = recalculer();
+        const mauvaise = toutes.findIndex(l => remplie(l) && (!l.nom || !(+l.qte > 0) || l.pu === '' || isNaN(+l.pu)));
+        if (!utiles.length) return obligatoire ? 'Ajoutez au moins une ligne avec un nom, une quantité et un prix unitaire.' : '';
+        if (mauvaise >= 0) return `La ligne ${mauvaise + 1} est incomplète : il faut un nom, une quantité positive et un prix unitaire.`;
+        if (utiles.some(l => plusDeCentimes(+l.pu))) return 'Les prix unitaires doivent être exprimés au centime près (2 décimales maximum).';
+        if (somme <= 0) return 'Le total général doit être strictement positif (une ligne négative, comme une réduction, est acceptée).';
+        return '';
+      }
+      const valider = () => { msg.textContent = message(); return !msg.textContent; };
+
+      // Ajoute une ligne (éventuellement pré-remplie : { nom, qte, pu } en chaînes)
+      function ajouterLigne({ nom = '', qte = '', pu = '' } = {}) {
+        const div = html(`<div class="lt-row">
+          <label><span>Nom</span><input type="text" class="name" maxlength="200" placeholder="Ex : Farine"></label>
+          <label><span>Quantité</span><input type="number" class="qty" step="any" inputmode="decimal" placeholder="1"></label>
+          <label><span>Prix unitaire (€)</span><input type="number" class="price" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+          <output class="line">0,00 €</output>
+          <button type="button" class="x" aria-label="Supprimer la ligne">×</button></div>`);
+        div.querySelector('.name').value = nom;
+        div.querySelector('.qty').value = qte;
+        div.querySelector('.price').value = pu;
+        div.addEventListener('input', () => { recalculer(); if (msg.textContent) valider(); });
+        div.addEventListener('focusout', e => { if (!div.contains(e.relatedTarget) && remplie(lire(div))) valider(); });
+        div.querySelector('.x').onclick = () => {
+          if (lignes.children.length > 1) div.remove();                       // on garde toujours 1 ligne
+          else div.querySelectorAll('input').forEach(i => i.value = '');
+          recalculer();
+        };
+        lignes.append(div); recalculer();
+      }
+      el.querySelector('.add').onclick = () => ajouterLigne();
+      const vider = () => { lignes.innerHTML = ''; ajouterLigne(); msg.textContent = ''; };
+
+      /* ---------- Import JSON ---------- */
+      const panneau = el.querySelector('.lt-import'), bascule = el.querySelector('.import-toggle');
+      const zone = el.querySelector('.lt-json'), msgImport = el.querySelector('.lt-import-err');
+      el.querySelector('.lt-example').textContent = EXEMPLE_JSON;
+
+      function ouvrirPanneau(ouvert) {
+        panneau.hidden = !ouvert;
+        bascule.setAttribute('aria-expanded', String(ouvert));
+        msgImport.textContent = '';
+        if (ouvert) zone.focus();
+      }
+      bascule.onclick = () => ouvrirPanneau(panneau.hidden);
+      el.querySelector('.lt-cancel').onclick = () => { zone.value = ''; ouvrirPanneau(false); };
+
+      // Nombre accepté : 12, 1.5, "1.5" ou "1,5" -> chaîne avec point ; null si invalide
+      function versNombre(v) {
+        if (typeof v === 'number') return isFinite(v) ? decimal(String(v)) : null;
+        if (typeof v === 'string') {
+          const s = v.trim().replace(/\s/g, '').replace(',', '.');
+          return s !== '' && isFinite(Number(s)) ? decimal(s) : null;
+        }
+        return null;
+      }
+
+      // Transforme le texte collé en lignes ; lève une Error avec un message lisible
+      function lireJson(texte) {
+        // Retire d'éventuelles clôtures Markdown ```json … ``` ajoutées par l'IA
+        const brut = texte.trim().replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/, '');
+        if (!brut) throw new Error('Collez d\'abord le JSON dans l\'encart.');
+        let data;
+        try { data = JSON.parse(brut); }
+        catch (e) { throw new Error('JSON invalide : ' + e.message); }
+        if (!Array.isArray(data)) throw new Error('Le JSON doit être une liste : [ { … }, { … } ].');
+        if (!data.length) throw new Error('La liste est vide.');
+        if (data.length > MAX_LIGNES) throw new Error(`Trop de lignes (${data.length}) : maximum ${MAX_LIGNES}.`);
+        return data.map((item, i) => {
+          const n = i + 1;
+          if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error(`Ligne ${n} : un objet { "nom", "qte", "pu" } est attendu.`);
+          const nom = typeof item.nom === 'string' ? item.nom.trim() : (typeof item.nom === 'number' ? String(item.nom) : '');
+          if (!nom) throw new Error(`Ligne ${n} : le champ « nom » est manquant ou vide.`);
+          if (nom.length > 200) throw new Error(`Ligne ${n} : le nom dépasse 200 caractères.`);
+          const qte = versNombre(item.qte), pu = versNombre(item.pu);
+          if (qte === null) throw new Error(`Ligne ${n} : le champ « qte » doit être un nombre.`);
+          if (pu === null) throw new Error(`Ligne ${n} : le champ « pu » doit être un nombre.`);
+          return { nom, qte, pu };
+        });
+      }
+
+      el.querySelector('.lt-apply').onclick = () => {
+        let nouvelles;
+        try { nouvelles = lireJson(zone.value); }
+        catch (e) { msgImport.textContent = e.message; return; }
+
+        const dejaSaisi = [...lignes.children].some(div => remplie(lire(div)));
+        if (dejaSaisi && !confirm('Remplacer les lignes actuelles du tableau par celles du JSON ?')) return;
+
+        lignes.innerHTML = '';
+        nouvelles.forEach(ajouterLigne);
+        zone.value = '';
+        ouvrirPanneau(false);
+        valider();   // signale tout de suite un souci restant (qte ≤ 0, centimes, total…)
+      };
+
+      ajouterLigne();
+
+      const remplir = liste => {
+        lignes.innerHTML = '';
+        (liste || []).forEach(l => ajouterLigne({ nom: String(l.nom), qte: String(l.qte), pu: String(l.pu) }));
+        if (!lignes.children.length) ajouterLigne();
+        msg.textContent = '';
+      };
+      return { el, valider, vider, remplir, valeur: () => [...lignes.children].map(lire).filter(remplie) };
+    }
+
+    /* ---------- 3.4 Dépôt de fichiers ----------
+       fichiers({ label:'Justificatifs', aide:'texte d'aide' })  -> titre + aide au-dessus du bouton
+       fichiers({ pdf:true })  -> un seul PDF
+       fichiers({ obligatoire:false }) -> plusieurs fichiers, facultatif
+       valeur() -> liste de File */
+    function fichiers({ pdf = false, obligatoire = true, label = '', aide = '' } = {}) {
+      let liste = [], avis = '';                // avis = fichiers refusés lors du dernier ajout
+      const el = html(`<div><h3></h3><p class="mut"></p><label class="btn ghost">${pdf ? 'Choisir le PDF de la facture' : 'Ajouter des fichiers'}
+        <input type="file" class="sr" ${pdf ? 'accept="application/pdf,.pdf"' : 'multiple'}></label>
+        <ul class="files"></ul><p class="err" role="alert"></p></div>`);
+      const input = el.querySelector('input'), ul = el.querySelector('ul'), msg = el.querySelector('.err');
+      const titre = el.querySelector('h3'), texteAide = el.querySelector('p.mut');
+      if (label) ecrireLabel(titre, label, obligatoire); else titre.remove();   // étoile si obligatoire
+      if (aide) texteAide.textContent = aide; else texteAide.remove();
+
+      // Redessine la liste des fichiers choisis
+      function dessiner() {
+        ul.innerHTML = '';
+        liste.forEach((f, i) => {
+          const li = html('<li><span></span><small></small><button type="button" class="x" aria-label="Retirer ce fichier">×</button></li>');
+          li.querySelector('span').textContent = f.name;
+          li.querySelector('small').textContent = (f.size / 1048576).toFixed(1) + ' Mo';
+          li.querySelector('button').onclick = () => { liste.splice(i, 1); avis = ''; dessiner(); if (msg.textContent) valider(); };
+          ul.append(li);
+        });
+      }
+
+      // Renvoie la raison du refus d'un fichier, ou '' s'il est accepté
+      const probleme = f =>
+        pdf && !/\.pdf$/i.test(f.name) ? `« ${f.name} » n'est pas un PDF : seule la facture au format PDF est acceptée.` :
+          !pdf && !EXT_OK.includes(extension(f.name)) ? `« ${f.name} » : format refusé. Téléversez un PDF ou une image ; Word, Excel, CSV, texte et RTF ne sont pas intégrés au PDF.` :
+            !f.size ? `« ${f.name} » est vide.` :
+              f.size > MAX_BYTES ? `« ${f.name} » dépasse ${MAX_BYTES / 1048576} Mo.` : '';
+
+      input.onchange = e => {
+        const refus = [], tropNombreux = [];
+        for (const f of e.target.files) {
+          const p = probleme(f);
+          if (p) { refus.push(p); continue; }
+          if (pdf) { liste = [f]; continue; }                                   // facture : un seul fichier
+          if (liste.some(x => x.name === f.name && x.size === f.size)) continue;   // doublon
+          if (liste.length >= MAX_FILES) { tropNombreux.push(`« ${f.name} »`); continue; }
+          liste.push(f);
+        }
+        if (tropNombreux.length) refus.push(`${MAX_FILES} fichiers maximum, non ajouté(s) : ${tropNombreux.join(', ')}.`);
+        avis = refus.join(' ');
+        e.target.value = '';
+        dessiner(); valider();
+      };
+
+      function valider() {
+        msg.textContent = avis || (obligatoire && !liste.length
+          ? (pdf ? 'Ajoutez la facture au format PDF.' : 'Ajoutez au moins un justificatif (photo, PDF…).') : '');
+        return !msg.textContent;
+      }
+      // Pièces déjà enregistrées côté serveur (modification d'une demande) : { id, name, size }
+      const precharger = items => { liste = (items || []).map(f => ({ name: f.name, size: f.size || 0, fileId: f.id })); avis = ''; dessiner(); };
+      return { el, valider, precharger, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
+    }
+
+    /* ---------- Menu déroulant simple ----------
+       menuListe({ label:'…', erreur:'…' })   (toujours obligatoire)
+       rafraichir(liste) remplit le menu ; valeur() -> le texte choisi ('' si rien) */
+    function menuListe({ label, erreur }) {
+      const id = nouvelId();
+      const el = html(`<div><label class="f" for="${id}"></label>
+        <select id="${id}"></select><p class="err" role="alert"></p></div>`);
+      const menu = el.querySelector('select'), msg = el.querySelector('.err');
+      ecrireLabel(el.querySelector('label'), label, true);
+
+      const valider = () => montrerErreur(menu, msg, menu.value ? '' : erreur);
+      menu.addEventListener('change', valider);
+
+      function rafraichir(items) {
+        menu.innerHTML = '<option value="">— Choisir —</option>';
+        (items || []).forEach(nom => {
+          const o = document.createElement('option');
+          o.value = nom; o.textContent = nom;
+          menu.append(o);
+        });
+      }
+      rafraichir([]);
+
+      return {
+        el, valider, rafraichir,
+        valeur: () => menu.value,
+        choisir: v => { menu.value = v || ''; },
+        vider: () => { menu.selectedIndex = 0; montrerErreur(menu, msg, ''); }
+      };
+    }
+
+    /* ---------- 3.5 Menu déroulant + « ajouter un nouveau » ----------
+       choixPersonne({ mot:'bénéficiaire', champs:[…] })
+       - Menu avec les personnes déjà connues, OU mini-formulaire pour en créer une.
+       - rafraichir(liste) remplit le menu.
+       - valeur() -> { beneficiaryId, newBeneficiary } (ce que le serveur attend) */
+
+    // IBAN : espace tous les 4 caractères
+    const fmtIban = s => s.replace(/\s/g, '').toUpperCase().slice(0, 34).replace(/(.{4})(?=.)/g, '$1 ');
+    const IBAN_LEN = { FR: 27, MC: 27, BE: 16, DE: 22, ES: 24, IT: 27, LU: 20, CH: 21, NL: 18, PT: 25, GB: 22, IE: 22, AT: 20 };
+    // Vérifie la clé de contrôle de l'IBAN (modulo 97)
+    function validIban(v) {
+      const s = v.replace(/\s/g, '').toUpperCase();
+      if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+      if (IBAN_LEN[s.slice(0, 2)] && s.length !== IBAN_LEN[s.slice(0, 2)]) return false;
+      const chiffres = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, c => String(c.charCodeAt(0) - 55));
+      let reste = 0;
+      for (const c of chiffres) reste = (reste * 10 + +c) % 97;
+      return reste === 1;
+    }
+
+    // Les champs du mini-formulaire. key = nom envoyé au serveur, req = message si vide,
+    // check = fonction qui renvoie un message d'erreur ('' si OK), def = valeur par défaut.
+    const checkIban = v => validIban(v) ? '' : 'Cet IBAN semble invalide : vérifiez chaque caractère (la clé de contrôle est incorrecte).';
+    const CHAMPS_BENEF = [
+      { key: 'prenom', label: 'Prénom associé au RIB du bénéficiaire', req: 'Indiquez le prénom associé au RIB.' },
+      { key: 'nom', label: 'Nom associé au RIB du bénéficiaire', req: 'Indiquez le nom associé au RIB.' },
+      { key: 'mail', label: 'Adresse mail du bénéficiaire (obligatoire pour la signature)', type: 'email', req: 'Indiquez l’adresse e-mail du bénéficiaire : elle est nécessaire pour le circuit de signature.', check: v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? '' : 'Cette adresse mail ne semble pas valide.' },
+      { key: 'tel', label: 'Numéro de téléphone du bénéficiaire', type: 'tel', check: v => /^\+?[\d .-]{9,20}$/.test(v) ? '' : 'Ce numéro de téléphone ne semble pas valide.' },
+      { key: 'role', label: `Rôle dans l'AEn7 du bénéficiaire`, def: 'Membre AEn7' },
+      { key: 'iban', label: 'IBAN du bénéficiaire', req: `Indiquez l'IBAN du bénéficiaire.`, check: checkIban, ph: 'FR76 …' }
+    ];
+    const CHAMPS_PREST = [
+      { key: 'nom', label: 'Nom associé au RIB du prestataire', req: 'Indiquez le nom associé au RIB du prestataire.' },
+      { key: 'iban', label: 'IBAN du prestataire', req: `Indiquez l'IBAN du prestataire.`, check: checkIban, ph: 'FR76 …' }
+    ];
+
+    function choixPersonne({ mot, champs }) {
+      const id = nouvelId();
+      let ajout = false, liste = [];     // ajout = true quand on est en mode « nouveau »
+
+      const el = html(`<div>
+        <p class="mut">Choisissez votre ${mot} uniquement si ses informations bancaires n'ont pas changé.</p>
+        <div class="slide pick"><div>
+          <label class="f" for="${id}">Choix du ${mot} : <span class="req">*</span></label><select id="${id}"></select><p class="err" role="alert"></p>
+        </div></div>
+        <button type="button" class="btn ghost toggle"></button>
+        <div class="slide form closed" inert><div>
+          <p class="warn">Remplissez avec une attention toute particulière cette partie, svp.</p>
+        </div></div></div>`);
+      const pick = el.querySelector('.pick'), form = el.querySelector('.form'), boite = form.firstElementChild;
+      const menu = el.querySelector('select'), msgMenu = el.querySelector('.pick .err'), bouton = el.querySelector('.toggle');
+
+      // --- Construction du mini-formulaire à partir de la liste « champs » ---
+      const saisies = {}, msgs = {};
+      champs.forEach(c => {
+        const w = html(`<div><label class="f"></label><input type="${c.type || 'text'}" autocomplete="off" maxlength="${c.key === 'iban' ? 42 : 200}"><p class="err" role="alert"></p></div>`);
+        const input = w.querySelector('input');
+        ecrireLabel(w.querySelector('label'), c.label, !!c.req);   // étoile seulement si le champ a un message « req »
+        input.value = c.def || ''; input.placeholder = c.ph || '';
+        saisies[c.key] = input; msgs[c.key] = w.querySelector('.err');
+
+        if (c.key === 'iban') input.addEventListener('input', () => {     // met en forme l'IBAN en gardant le curseur
+          const n = input.value.slice(0, input.selectionStart).replace(/\s/g, '').length;
+          input.value = fmtIban(input.value);
+          let i = 0, vus = 0;
+          while (i < input.value.length && vus < n) { if (input.value[i] !== ' ') vus++; i++; }
+          input.setSelectionRange(i, i);
+        });
+        input.addEventListener('blur', () => { if (ajout) verifierChamp(c); });
+        input.addEventListener('input', () => { if (msgs[c.key].textContent) verifierChamp(c); });
+        boite.append(w);
+      });
+
+      // --- Validation ---
+      function verifierChamp(c) {
+        const v = saisies[c.key].value.trim();
+        const m = !v ? (c.req || '') : (c.check ? c.check(v) : '');
+        return montrerErreur(saisies[c.key], msgs[c.key], m);
+      }
+      const verifierMenu = () => montrerErreur(menu, msgMenu, menu.value ? '' : `Choisissez un ${mot} dans la liste ou ajoutez-en un nouveau.`);
+      menu.addEventListener('change', verifierMenu);
+
+      function valider() {
+        if (!ajout) { const ok = verifierMenu(); if (!ok) menu.focus(); return ok; }
+        const mauvais = champs.filter(c => !verifierChamp(c));          // filter : tous les champs sont testés
+        if (mauvais.length) saisies[mauvais[0].key].focus();
+        return !mauvais.length;
+      }
+
+      // --- Bascule entre « menu » et « nouveau » ---
+      function mode(nouveau) {
+        ajout = nouveau;
+        pick.classList.toggle('closed', nouveau); pick.toggleAttribute('inert', nouveau);
+        form.classList.toggle('closed', !nouveau); form.toggleAttribute('inert', !nouveau);
+        bouton.textContent = nouveau ? `Choisir un ${mot} existant` : `+ Ajouter un ${mot}`;
+        bouton.setAttribute('aria-expanded', nouveau);
+        montrerErreur(menu, msgMenu, '');
+        champs.forEach(c => montrerErreur(saisies[c.key], msgs[c.key], ''));
+      }
+      bouton.onclick = () => mode(!ajout);
+
+      // --- Fonctions publiques ---
+      function rafraichir(items) {
+        liste = items || [];
+        menu.innerHTML = '<option value="">— Choisir —</option>';
+        liste.forEach(b => {
+          const o = document.createElement('option');
+          o.value = b.id;
+          o.textContent = ((b.first + ' ' + b.last).trim() || '(sans nom)') + (b.iban ? ' (' + b.iban + ')' : '');
+          menu.append(o);
+        });
+        bouton.classList.toggle('hidden', !liste.length);     // liste vide : on va direct au mode « nouveau »
+        mode(!liste.length);
+      }
+      function valeur() {
+        if (!ajout) return { beneficiaryId: menu.value, newBeneficiary: {} };
+        const g = k => saisies[k] ? saisies[k].value.trim() : '';      // un champ absent (ex : prénom d'un prestataire) = ''
+        return { beneficiaryId: '', newBeneficiary: { prenom: g('prenom'), nom: g('nom'), mail: g('mail'), tel: g('tel'), role: g('role'), iban: g('iban').replace(/\s/g, '').toUpperCase() } };
+      }
+      function vider() {
+        champs.forEach(c => saisies[c.key].value = c.def || '');
+        menu.selectedIndex = 0; mode(!liste.length);
+      }
+
+      rafraichir([]);
+      function choisir(id) {                       // sélectionne une fiche existante (modification d'une demande)
+        if (!id || !liste.some(b => b.id === id)) return;
+        mode(false); menu.value = id;
+      }
+      return { el, valider, valeur, vider, rafraichir, choisir };
+    }
+
+
+    /* ---------- 3.6 Tableau de suivi des demandes ----------
+      JSON_to_tab(lignes, colonnes) -> un <table> construit depuis un tableau JSON.
+      colonnes : [{ key, titre, droite?, format?(valeur, ligne), tip? }]
+      - format : transforme la valeur affichée
+      - tip    : true => la valeur brute apparaît en infobulle
+      Le texte passe par textContent : aucune injection HTML possible. */
+    function JSON_to_tab(lignes, colonnes) {
+      const table = html('<table class="suivi"><thead><tr></tr></thead><tbody></tbody></table>');
+      const entete = table.querySelector('thead tr'), corps = table.querySelector('tbody');
+      colonnes.forEach(c => {
+        const th = document.createElement('th');
+        th.scope = 'col'; th.textContent = c.titre;
+        if (c.droite) th.className = 'num';
+        entete.append(th);
+      });
+      (lignes || []).forEach(l => {
+        const tr = document.createElement('tr');
+        colonnes.forEach(c => {
+          const td = document.createElement('td');
+          if (c.cellule) { c.cellule(td, l); tr.append(td); return; }      // cellule entièrement personnalisée (menu d'actions…)
+          const v = c.format ? c.format(l[c.key], l) : l[c.key];
+          td.textContent = v == null ? '' : v;
+          if (c.droite) td.className = 'num';
+          if (c.tip) td.title = l[c.key] || '';
+          tr.append(td);
+        });
+        corps.append(tr);
+      });
+      return table;
+    }
+
+    // Colonnes du suivi (les clés viennent de demandesSuivi_ côté serveur)
+    const COLONNES_SUIVI = [
+      { key: 'id', titre: 'N° de demande', format: v => String(v == null ? '' : v), tip: true },
+      { key: 'title', titre: 'Titre' },
+      { key: 'amount', titre: 'Montant total', droite: true, format: v => eur(Math.round((+v || 0) * 100)) },
+      { key: 'beneficiary', titre: 'Bénéficiaire / prestataire / club' },
+      { key: 'status', titre: 'Statut', format: v => v || 'En attente de traitement' },
+      { key: 'actions', titre: '', cellule: celluleActions }
+    ];
+
+    /* ---------- Actions sur une demande : menu « ⋮ » ---------- */
+    const erreurSession = e => e && e.code === 'AUTH' ? 'Votre session Google a expiré : rechargez la page pour vous reconnecter.' : (e && e.message) || 'Erreur inconnue.';
+    function infoAccueil(txt, neutre) { const p = $('msgAccueil'); p.textContent = txt || ''; p.style.color = neutre ? 'var(--mut)' : ''; }
+
+    // Un seul menu flottant (position fixe : il n'est pas rogné par le défilement horizontal du tableau)
+    const menuPopup = html('<div class="popmenu hidden" role="menu"></div>');
+    document.body.append(menuPopup);
+    let menuBouton = null;
+    function fermerMenu() { menuPopup.classList.add('hidden'); menuPopup.innerHTML = ''; menuBouton = null; }
+    function ouvrirMenu(bouton, items) {
+      if (menuBouton === bouton) { fermerMenu(); return; }
+      fermerMenu(); menuBouton = bouton;
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.setAttribute('role', 'menuitem'); b.textContent = it.libelle;
+        if (it.danger) b.className = 'danger';
+        b.onclick = () => { fermerMenu(); it.action(); };
+        menuPopup.append(b);
+      });
+      menuPopup.classList.remove('hidden');
+      const r = bouton.getBoundingClientRect(), h = menuPopup.offsetHeight;
+      menuPopup.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+      menuPopup.style.top = (r.bottom + h > window.innerHeight - 8 ? Math.max(8, r.top - h) : r.bottom) + 'px';
+    }
+    document.addEventListener('click', e => { if (!menuPopup.contains(e.target) && !e.target.closest('.dots')) fermerMenu(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') fermerMenu(); });
+    window.addEventListener('scroll', fermerMenu, { passive: true });
+    window.addEventListener('resize', fermerMenu);
+
+    // Cellule « ⋮ » d'une ligne : les droits (can.edit / can.cancel / can.pdf) viennent du serveur
+    function celluleActions(td, l) {
+      const can = l.can || {}, items = [];
+      if (can.edit) items.push({ libelle: 'Modifier', action: () => actionDemande('modifier', l) });
+      if (can.pdf) items.push({ libelle: 'Télécharger le PDF', action: () => actionDemande('pdf', l) });
+      if (can.cancel) items.push({ libelle: 'Annuler la demande', danger: true, action: () => actionDemande('annuler', l) });
+      if (!items.length) return;
+      const b = html('<button type="button" class="dots" aria-haspopup="menu"></button>');
+      b.textContent = '⋮'; b.setAttribute('aria-label', 'Actions pour la demande ' + l.id);
+      b.onclick = () => ouvrirMenu(b, items);
+      td.className = 'num'; td.append(b);
+    }
+
+    // Enregistre un PDF reçu en base64
+    function telecharger(nom, base64) {
+      const bin = atob(base64), octets = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) octets[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([octets], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = /\.pdf$/i.test(nom) ? nom : nom + '.pdf';
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    async function actualiserSuivi(bouton) {
+      bouton.disabled = true; infoAccueil('Actualisation…', true);
+      try {
+        const x = await call({ action: 'suivi' });
+        if (ctx) ctx.dem_suivi = x.dem_suivi;
+        tableSuivi.rafraichir(x.dem_suivi); infoAccueil('');
+      } catch (e) { infoAccueil(erreurSession(e)); }
+      finally { bouton.disabled = false; }
+    }
+
+    async function actionDemande(action, l) {
+      infoAccueil('');
+      try {
+        if (action === 'modifier') return await modifierDemande(l);
+        if (action === 'pdf') {
+          infoAccueil('Préparation du PDF…', true);
+          const r = await call({ action: 'pdf', reqId: l.id });
+          telecharger(r.name, r.data); infoAccueil('');
+        } else if (action === 'annuler') {
+          if (!confirm('Annuler la demande ' + l.id + ' ?\nLe circuit de signature est interrompu et les pièces sont supprimées. Cette action est définitive.')) return;
+          infoAccueil('Annulation en cours…', true);
+          const r = await call({ action: 'annuler', reqId: l.id });
+          if (ctx) ctx.dem_suivi = r.dem_suivi;
+          tableSuivi.rafraichir(r.dem_suivi); infoAccueil('Demande ' + l.id + ' annulée.', true);
+        }
+      } catch (e) { infoAccueil(erreurSession(e)); }
+    }
+
+    // Composant : { el, rafraichir(lignes) }
+    function suiviDemandes() {
+      const el = html('<div class="suivi-box"><div class="suivi-tete"><h3>Mes demandes</h3><button type="button" class="btn ghost actualiser">↻ Actualiser</button></div><div class="suivi-scroll"></div></div>');
+      const zone = el.querySelector('.suivi-scroll');
+      el.querySelector('.actualiser').onclick = e => actualiserSuivi(e.currentTarget);
+      function rafraichir(lignes) {
+        zone.innerHTML = '';
+        if (!lignes || !lignes.length) { zone.append(html('<p class="mut">Aucune demande en cours.</p>')); return; }
+        zone.append(JSON_to_tab(lignes, COLONNES_SUIVI));
+      }
+      rafraichir([]);
+      return { el, rafraichir };
+    }
+    /* ---------- 3.7 Gestion des bénéficiaires / prestataires du club ----------
+       gestionPersonnes() -> { el, rafraichir(benef, prest), fermer() }
+       Modifier / retirer / ajouter ; les listes viennent du contexte serveur (appliquerContexte). */
+    function brancherIban(input) {     // met l'IBAN en forme (espace tous les 4 caractères) en gardant le curseur
+      input.addEventListener('input', () => {
+        const n = input.value.slice(0, input.selectionStart).replace(/\s/g, '').length;
+        input.value = fmtIban(input.value);
+        let i = 0, vus = 0;
+        while (i < input.value.length && vus < n) { if (input.value[i] !== ' ') vus++; i++; }
+        input.setSelectionRange(i, i);
+      });
+    }
+
+    function gestionPersonnes() {
+      const el = html(`<section class="card hidden" id="gestion">
+        <h2>Mes bénéficiaires et prestataires</h2>
+        <p class="mut">Retirer une fiche ne change pas vos demandes passées. Modifier l’IBAN crée une nouvelle fiche : l’ancienne n’est plus proposée mais reste attachée aux demandes déjà faites.</p>
+        <p class="err" role="alert"></p>
+        <div class="g-liste"></div>
+        <div class="g-editeur hidden"></div>
+        <p><button type="button" class="btn ghost g-retour">← Retour à l’accueil</button></p></section>`);
+      const liste = el.querySelector('.g-liste'), editeur = el.querySelector('.g-editeur'), msg = el.querySelector('.err');
+      const MOTS = { benef: 'bénéficiaire', prest: 'prestataire' };
+      let donnees = { benef: [], prest: [] };
+
+      function ligne(kind, it) {
+        const li = html('<li class="g-row"><span class="g-nom"></span><small class="g-det"></small><span class="g-btns"><button type="button" class="btn ghost mod">Modifier</button><button type="button" class="btn ghost sup">Retirer</button></span></li>');
+        li.querySelector('.g-nom').textContent = ((it.first || '') + ' ' + (it.last || '')).trim() || '(sans nom)';
+        li.querySelector('.g-det').textContent = [it.iban, kind === 'benef' ? it.mail : '', kind === 'benef' ? it.tel : ''].filter(Boolean).join(' · ');
+        li.querySelector('.mod').onclick = () => ouvrir(kind, it);
+        li.querySelector('.sup').onclick = () => retirer(kind, it);
+        return li;
+      }
+
+      function dessiner() {
+        liste.innerHTML = '';
+        ['benef', 'prest'].forEach(kind => {
+          const bloc = html('<div><h3></h3><ul class="g-liste-ul"></ul><button type="button" class="btn ghost ajout"></button></div>');
+          bloc.querySelector('h3').textContent = kind === 'benef' ? 'Bénéficiaires (membres)' : 'Prestataires';
+          const ul = bloc.querySelector('ul');
+          if (!donnees[kind].length) ul.append(html('<li class="mut">Aucune fiche pour le moment.</li>'));
+          donnees[kind].forEach(it => ul.append(ligne(kind, it)));
+          const ajout = bloc.querySelector('.ajout');
+          ajout.textContent = '+ Ajouter un ' + MOTS[kind];
+          ajout.onclick = () => ouvrir(kind, null);
+          liste.append(bloc);
+        });
+      }
+
+      function fermer() {
+        editeur.classList.add('hidden'); editeur.innerHTML = '';
+        liste.classList.remove('hidden'); msg.textContent = '';
+      }
+
+      // Formulaire d'ajout (item = null) ou de modification (item = fiche existante)
+      function ouvrir(kind, item) {
+        msg.textContent = '';
+        const champs = kind === 'prest' ? CHAMPS_PREST : CHAMPS_BENEF;
+        const init = item ? { prenom: item.first, nom: item.last, mail: item.mail, tel: item.tel, role: item.role } : {};
+        const saisies = {}, msgs = {};
+        editeur.innerHTML = '';
+        const titre = document.createElement('h3');
+        titre.textContent = (item ? 'Modifier un ' : 'Ajouter un ') + MOTS[kind];
+        editeur.append(titre);
+        champs.forEach(c => {
+          const ibanFacultatif = !!item && c.key === 'iban';        // en modification, IBAN vide = on garde l'actuel
+          const w = html(`<div><label class="f"></label><input type="${c.type || 'text'}" autocomplete="off" maxlength="${c.key === 'iban' ? 42 : 200}"><p class="err" role="alert"></p></div>`);
+          const input = w.querySelector('input');
+          ecrireLabel(w.querySelector('label'), c.label, !!c.req && !ibanFacultatif);
+          input.value = item ? (init[c.key] || c.def || '') : (c.def || '');
+          input.placeholder = ibanFacultatif ? 'Laisser vide pour conserver l’IBAN actuel (' + item.iban + ')' : (c.ph || '');
+          if (c.key === 'iban') brancherIban(input);
+          saisies[c.key] = input; msgs[c.key] = w.querySelector('.err');
+          editeur.append(w);
+        });
+        const verifier = c => {
+          const v = saisies[c.key].value.trim(), facultatif = !!item && c.key === 'iban';
+          return montrerErreur(saisies[c.key], msgs[c.key], !v ? (facultatif ? '' : (c.req || '')) : (c.check ? c.check(v) : ''));
+        };
+        champs.forEach(c => saisies[c.key].addEventListener('blur', () => verifier(c)));
+
+        const barre = html('<div class="lt-actions"><button type="button" class="btn g-ok">Enregistrer</button><button type="button" class="btn ghost g-non">Annuler</button></div>');
+        const ok = barre.querySelector('.g-ok');
+        barre.querySelector('.g-non').onclick = fermer;
+        ok.onclick = async () => {
+          if (!champs.map(c => verifier(c)).every(Boolean)) return;
+          const g = k => saisies[k] ? saisies[k].value.trim() : '';
+          ok.disabled = true; msg.textContent = '';
+          try {
+            const x = await call({
+              action: 'beneSave', kind, id: item ? item.id : '',
+              newBeneficiary: { prenom: g('prenom'), nom: g('nom'), mail: g('mail'), tel: g('tel'), role: g('role'), iban: g('iban').replace(/\s/g, '').toUpperCase() }
+            });
+            appliquerContexte(x); fermer();
+          } catch (e) { msg.textContent = erreurSession(e); }
+          finally { ok.disabled = false; }
+        };
+        editeur.append(barre);
+        liste.classList.add('hidden'); editeur.classList.remove('hidden');
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      async function retirer(kind, it) {
+        const nom = ((it.first || '') + ' ' + (it.last || '')).trim() || 'cette fiche';
+        if (!confirm('Retirer « ' + nom + ' » de la liste ?\nLes demandes déjà faites ne sont pas modifiées.')) return;
+        msg.textContent = '';
+        try { appliquerContexte(await call({ action: 'beneDelete', kind, id: it.id })); }
+        catch (e) { msg.textContent = erreurSession(e); }
+      }
+
+      el.querySelector('.g-retour').onclick = () => { fermer(); afficherEcran('accueil'); };
+      return { el, fermer, rafraichir: (b, p) => { donnees = { benef: b || [], prest: p || [] }; dessiner(); } };
+    }
+
+    /* =====================================================================
+       PARTIE 4 — LES CARTES (les « sections » du formulaire)
+       carte('Titre', [ composants ou éléments… ], 'note facultative')
+       - Un composant (avec valider/vider) est repéré automatiquement :
+         il sera validé à l'envoi et vidé quand la carte disparaît.
+       ===================================================================== */
+
+    const aide = txt => html(`<p class="mut">${txt}</p>`);
+
+    function carte(titre, contenu, note = '') {
+      const el = html('<section class="card hidden"><h2></h2></section>');
+      el.querySelector('h2').textContent = titre;
+      if (note) el.append(html('<p class="note"></p>')), el.lastChild.textContent = note;
+      contenu.forEach(x => el.append(x.el || x));                      // composant -> son .el ; sinon l'élément lui-même
+      return { el, composants: contenu.filter(x => x.valider) };
+    }
+
+    /* =====================================================================
+       PARTIE 5 — LE FORMULAIRE : on assemble les composants
+       ===================================================================== */
+
+    // --- Commun à tous les types ---
+    const description = zoneTexte({
+      label: 'Description courte du virement',
+      placeholder: 'Ex : Achat de matériel pour la soirée du 12 mars',
+      erreur: 'Ajoutez une courte description du virement.', max: 300
+    });
+
+    // --- Textes d'aide réutilisés ---
+    const AIDE_FICHIERS = 'Photos ou PDF uniquement (JPEG, PNG, HEIC, WebP…) : 10 fichiers maximum, 10 Mo chacun. Les fichiers Word, Excel, CSV et texte ne sont pas acceptés.';
+
+    // --- Composants propres à chaque type ---
+    // (un titre = label ; l'étoile * apparaît toute seule quand la question est obligatoire)
+    const tableauNDF = tableau({ label: 'Tableau de la NDF' });
+    const fichiersNDF = fichiers({ label: 'Justificatifs', aide: AIDE_FICHIERS });
+
+    const raisonDSH = zoneTexte({
+      label: `Raison de la non obtention d'un justificatif`,
+      placeholder: `Ex : J'ai acheté mon article sur Vinted, un site ne fournissant pas de facture`,
+      erreur: 'Ajoutez la raison de non obtention de votre justificatif.', max: 1000
+    });
+    const tableauDSH = tableau({ label: 'Tableau de la DSH' });
+    const fichiersDSH = fichiers({ label: 'Justificatifs', aide: AIDE_FICHIERS, obligatoire: false });
+
+    const libelleFac = zoneTexte({ label: 'Libellé du virement (si demandé par le prestataire)', placeholder: 'fac - 260931', max: 140 });
+    const montantFac = montant({ label: 'Montant de la facture (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
+    const fichierFac = fichiers({ label: 'Facture (PDF uniquement, 1 fichier, 10 Mo maximum)', pdf: true });
+
+    const montantTicket = montant({ label: 'Montant du ticket (€)', erreur: 'Indiquez un montant strictement positif, avec 2 décimales maximum.' });
+    const descTicket = zoneTexte({ label: 'Description courte du ticket', placeholder: 'Ex : Ticket n°42 – achat de peinture', erreur: '', max: 300 });
+    const tableauTicket = tableau({ label: 'Tableau du ticket', obligatoire: false });
+    const fichiersTicket = fichiers({ label: 'Justificatifs', aide: AIDE_FICHIERS, obligatoire: false });
+
+    const listeBenef = choixPersonne({ mot: 'bénéficiaire', champs: CHAMPS_BENEF });
+    const listePrest = choixPersonne({ mot: 'prestataire', champs: CHAMPS_PREST });
+    const menuClubs = menuListe({ label: 'Bureau ou club destinataire', erreur: 'Choisissez le bureau ou club destinataire.' });
+
+    // --- Les cartes ---
+    const carteNDF = carte('Note De Frais', [tableauNDF, fichiersNDF],
+      'Une NDF permet UNIQUEMENT de rembourser un membre de l\'AEn7. Les tickets de carte, les screens de compte bancaire ou les « je te jure j\'ai payé » ne permettent pas de créer une NDF.');
+
+    const carteDSH = carte('Déclaration sur l\'honneur', [raisonDSH, tableauDSH, fichiersDSH]);
+
+    const carteFAC = carte('Facture', [libelleFac, montantFac, fichierFac],
+      'Attention : un devis (même signé) n\'est pas une facture. Tout prestataire a l\'obligation de vous fournir une facture si vous la demandez. Gardez un exemplaire de toutes les factures de votre bureau ou club pour garder une bonne trace de votre trésorerie.');
+
+    const carteTicket = carte('Ticket interne', [montantTicket, descTicket, tableauTicket, fichiersTicket]);
+
+    const carteBenef = carte('Bénéficiaire', [listeBenef]);
+    const cartePrest = carte('Prestataire', [listePrest]);
+    const carteClubs = carte('Destinataire', [menuClubs]);
+
+    // --- LA table de correspondance : pour chaque type, ce qu'on affiche et ce qu'on envoie ---
+    //   cartes     : les sections affichées
+    //   fichiers   : le composant dont on envoie les fichiers
+    //   personne   : ce qui identifie le destinataire (bénéficiaire, prestataire ou club)
+    //   donnees()  : les champs spécifiques envoyés au serveur
+    const TYPES = {
+      NDF: {
+        libelle: 'Une Note De Frais (NDF)',
+        cartes: [carteNDF, carteBenef], fichiers: fichiersNDF, personne: listeBenef,
+        donnees: () => ({ table: tableauNDF.valeur(), reason: '' })
+      },
+      DSH: {
+        libelle: 'Une Déclaration Sur l\'Honneur (DSH)',
+        cartes: [carteDSH, carteBenef], fichiers: fichiersDSH, personne: listeBenef,
+        donnees: () => ({ table: tableauDSH.valeur(), reason: raisonDSH.valeur() })
+      },
+      FAC: {
+        libelle: 'Une Facture (FAC)',
+        cartes: [carteFAC, cartePrest], fichiers: fichierFac, personne: listePrest,
+        donnees: () => ({ amount: montantFac.valeur(), label: libelleFac.valeur() })
+      },
+      TIC: {
+        libelle: 'Un Ticket interne (TIC)',
+        cartes: [carteTicket, carteClubs], fichiers: fichiersTicket,
+        personne: { valeur: () => ({ club: menuClubs.valeur() }) },   // pas de bénéficiaire : on envoie le club
+        donnees: () => ({ amount: montantTicket.valeur(), reason: descTicket.valeur(), table: tableauTicket.valeur() })
+      }
+    };
+    const TOUTES_LES_CARTES = [carteNDF, carteDSH, carteFAC, carteTicket, carteClubs, carteBenef, cartePrest];
+    const tableSuivi = suiviDemandes();
+    const gestion = gestionPersonnes();
+
+    // Pré-remplissage du formulaire à partir d'une demande existante (action « demande » du serveur)
+    const REMPLIR = {
+      NDF: d => { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); listeBenef.choisir(d.beneficiaryId); },
+      DSH: d => { raisonDSH.remplir(d.reason); tableauDSH.remplir(d.table); fichiersDSH.precharger(d.files); listeBenef.choisir(d.beneficiaryId); },
+      FAC: d => { libelleFac.remplir(d.label); montantFac.remplir(d.amount); fichierFac.precharger(d.files); listePrest.choisir(d.beneficiaryId); },
+      TIC: d => { montantTicket.remplir(d.amount); descTicket.remplir(d.reason); tableauTicket.remplir(d.table); fichiersTicket.precharger(d.files); menuClubs.choisir(d.club); }
+    };
+    /* =====================================================================
+       PARTIE 6 — AFFICHAGE : choix du type et montage de la page
+       ===================================================================== */
+
+    let type = '';   // 'NDF', 'DSH', 'FAC' ou ''
+
+    // Affiche les cartes du type choisi, cache (et vide) les autres
+    function choisirType(valeur) {
+      type = valeur || '';
+      const voulues = type ? TYPES[type].cartes : [];
+      TOUTES_LES_CARTES.forEach(c => {
+        const afficher = voulues.includes(c);
+        if (!afficher && !c.el.classList.contains('hidden')) c.composants.forEach(x => x.vider());   // on vide ce qui disparaît
+        c.el.classList.toggle('hidden', !afficher);
+      });
+      $('sendBar').classList.toggle('hidden', !type);
+      $('e-type').textContent = ''; $('sendErr').textContent = '';
+      majVerrou();
+    }
+
+    // Carte 1 : description + boutons radio (fabriqués depuis TYPES)
+    const carteDebut = html('<section class="card"></section>');
+    const boiteType = html('<fieldset><legend>Mon justificatif est :</legend></fieldset>');
+    Object.entries(TYPES).forEach(([code, t]) => {
+      const choix = html(`<label class="choice"><input type="radio" name="type" value="${code}"> ${t.libelle}</label>`);
+      choix.querySelector('input').addEventListener('click', e => {
+        if (code === type) {                                    // recliquer = désélectionner… et tout effacer : on confirme
+          if (!confirm('Décocher ce type efface ce que vous avez saisi. Continuer ?')) { e.preventDefault(); return; }
+          e.target.checked = false;
+        }
+        choisirType(e.target.checked ? code : null);
+        if (type) TYPES[type].cartes[0].el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      boiteType.append(choix);
+    });
+
+    // On pose le tout dans la page, dans l'ordre
+
+    // --- Écran d'accueil : un simple bouton « Faire une demande » ---
+    const ecranAccueil = html('<section class="card" id="accueil"></section>');
+    const boutonDemande = html('<button type="button" class="btn" id="btnDemande">Faire une demande</button>');
+    const boutonGestion = html('<button type="button" class="btn ghost" id="btnGestion">Gérer mes bénéficiaires et prestataires</button>');
+    const barreAccueil = html('<div class="accueil-actions"></div>');
+    barreAccueil.append(boutonDemande, boutonGestion);
+    const msgAccueil = html('<p class="err" id="msgAccueil" role="alert"></p>');
+    ecranAccueil.append(barreAccueil, msgAccueil, tableSuivi.el);
+
+    // Le formulaire (choix du type + cartes)
+    function afficherFormulaire(oui) {
+      afficherEcran(oui ? 'formulaire' : 'accueil');
+    }
+    // Un seul écran à la fois : 'accueil' | 'formulaire' | 'gestion'
+    function afficherEcran(nom) {
+      ecranAccueil.classList.toggle('hidden', nom !== 'accueil');
+      carteDebut.classList.toggle('hidden', nom !== 'formulaire');
+      gestion.el.classList.toggle('hidden', nom !== 'gestion');
+    }
+    boutonDemande.addEventListener('click', () => {
+      afficherFormulaire(true);
+      carteDebut.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    $('sections').append(ecranAccueil, carteDebut, ...TOUTES_LES_CARTES.map(c => c.el), gestion.el);
+    const eType = html('<p class="err" id="e-type" role="alert"></p>');
+
+    // La description commune
+    const boiteDesc = description.el;
+    const indice = aide('Remplissez d\'abord la description pour pouvoir choisir un type.');
+    const boutonRetour = html('<p><button type="button" class="btn ghost" id="retourAccueil">← Annuler et retourner à l’accueil</button></p>');
+    const banniereModif = html('<p class="warn hidden" id="banniereModif"></p>');
+    carteDebut.append(boutonRetour, banniereModif, boiteDesc, indice, boiteType, eType);
+
+    function majVerrou() {
+      const rempli = description.valeur().trim() !== '';
+      const verrouille = !rempli && !type;          // si un type est déjà choisi, on ne bloque plus
+      boiteType.querySelectorAll('input').forEach(r => r.disabled = verrouille);
+      indice.classList.toggle('hidden', !verrouille);
+    }
+    boiteDesc.addEventListener('input', majVerrou);
+    majVerrou();
+
+    afficherFormulaire(false);
+
+    /* =====================================================================
+       PARTIE 7 — ENVOI
+       ===================================================================== */
+
+    $('form').addEventListener('submit', e => e.preventDefault());
+
+    const dejaEnvoyes = new Map();   // File -> fileId : un nouvel essai ne renvoie pas les fichiers déjà partis
+
+    const fichierEnBase64 = f => new Promise((ok, ko) => {
+      const r = new FileReader();
+      r.onload = () => ok(r.result.split(',')[1]);
+      r.onerror = () => ko(Error('Lecture du fichier impossible.'));
+      r.readAsDataURL(f);
+    });
+
+    // Valide la description + tous les composants des cartes affichées
+    function toutValider() {
+      const aValider = [description, ...TYPES[type].cartes.flatMap(c => c.composants)];
+      return aValider.map(x => x.valider()).every(Boolean);     // map : toutes les erreurs s'affichent d'un coup
+    }
+
+    const progression = (msg, pct) => { $('sendMsg').textContent = msg; $('barFill').style.width = pct + '%'; };
+    let enCours = false;
+
+    $('send').onclick = async () => {
+      if (enCours) return;
+      $('sendErr').textContent = '';
+
+      // 1. Validation
+      if (!type) { $('e-type').textContent = 'Choisissez le type de justificatif.'; return; }
+      if (!toutValider()) {
+        $('sendErr').textContent = 'Certains champs sont à corriger (messages en rouge).';
+        (document.querySelector('#form .err:not(:empty)') || $('sendErr')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // 2. Envoi : d'abord les fichiers un par un, puis la demande
+      enCours = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progression('Préparation…', 5);
+      try {
+        // Le numéro de demande est alloué à l'envoi (pas à la connexion) : pas de numéro perdu si on n'envoie rien.
+        if (!modif && !reqId) reqId = makeReqId(await call({ action: 'newRequest' }));
+        if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Reconnectez-vous puis réessayez.');
+        const t = TYPES[type], fichiersAEnvoyer = t.fichiers.valeur(), fileIds = [];
+        for (let i = 0; i < fichiersAEnvoyer.length; i++) {
+          const f = fichiersAEnvoyer[i];
+          progression(`Envoi du fichier ${i + 1}/${fichiersAEnvoyer.length}…`, 10 + 80 * i / fichiersAEnvoyer.length);
+          if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', type, reqId, name: f.name, data: await fichierEnBase64(f) })).fileId);
+          fileIds.push(f.fileId || dejaEnvoyes.get(f));       // f.fileId : pièce déjà enregistrée (modification)
+        }
+        progression('Enregistrement de la demande…', 92);
+        await call({
+          action: modif ? 'update' : 'submit', type, reqId, description: description.valeur(), fileIds,
+          ...t.personne.valeur(),     // beneficiaryId + newBeneficiary
+          ...t.donnees()              // champs propres au type
+        });
+        if (modif) {
+          $('doneText').textContent = 'Votre demande ' + modif + ' a bien été modifiée : le PDF est régénéré et le circuit de signature recommence (le bénéficiaire recevra un nouvel e-mail).';
+          quitterModification();     // rend le numéro réservé pour la prochaine nouvelle demande
+          call({ action: 'context' }).then(appliquerContexte).catch(() => { });
+        } else {
+          $('doneText').textContent = 'Votre demande de virement a bien été enregistrée.';
+          reqId = '';   // un nouveau numéro sera alloué au prochain envoi
+          call({ action: 'context' }).then(appliquerContexte).catch(() => { });
+        }
+        $('form').classList.add('hidden'); $('done').classList.remove('hidden'); window.scrollTo({ top: 0 });
+      } catch (e) {
+        console.error(e);
+        if (e.code === 'FILE') dejaEnvoyes.clear();
+        if (e.code === 'AUTH') {    // jeton Google expiré (~1 h)
+          $('sendErr').textContent = 'Votre session Google a expiré : reconnectez-vous ci-dessous, puis cliquez de nouveau sur « Envoyer ».';
+          google.accounts.id.renderButton($('resignin'), { theme: 'outline', size: 'large' });
+        } else $('sendErr').textContent = e.message;
+      } finally {
+        enCours = false; $('send').disabled = false; $('overlay').classList.add('hidden');
+      }
+    };
+
+    // « Retour à l'accueil » : on réinitialise le formulaire puis on affiche l'écran d'accueil
+    /* =====================================================================
+       PARTIE 8 — RETOUR À L'ACCUEIL, ANNULATION ET MODIFICATION
+       ===================================================================== */
+
+    // Sort du mode « modification » : le numéro réservé pour une nouvelle demande est restitué
+    function quitterModification() {
+      if (modif) { reqId = reqIdNouv; modif = ''; }
+      $('banniereModif').classList.add('hidden');
+      boiteType.classList.remove('hidden');
+    }
+
+    // Remet tout à zéro et revient à l'accueil
+    function reinitialiserFormulaire() {
+      quitterModification();
+      dejaEnvoyes.clear();
+      document.querySelectorAll('input[name=type]').forEach(r => r.checked = false);
+      choisirType(null);
+      description.vider(); majVerrou();
+      afficherEcran('accueil');
+    }
+
+    // Annule la saisie en cours (nouvelle demande ou modification) ; les fichiers déjà téléversés sont supprimés côté serveur
+    function annulerSaisie() {
+      if (enCours) return;
+      if ((type || description.valeur()) && !confirm(modif
+        ? 'Abandonner la modification de la demande ' + modif + ' ? Les changements non envoyés seront perdus.'
+        : 'Annuler cette demande de virement ? Tout ce que vous avez saisi sera effacé.')) return;
+      const ids = [...dejaEnvoyes.values()], req = reqId;
+      reinitialiserFormulaire();
+      window.scrollTo({ top: 0 });
+      if (ids.length && req) call({ action: 'abandon', reqId: req, fileIds: ids }).catch(() => { });   // nettoyage au mieux (purgeTmp rattrape le reste)
+    }
+
+    // Charge une demande existante dans le formulaire (état SIGNATURE / ERREUR uniquement : contrôlé par le serveur)
+    async function modifierDemande(l) {
+      infoAccueil('Chargement de la demande…', true);
+      const d = await call({ action: 'demande', reqId: l.id });
+      infoAccueil('');
+      reinitialiserFormulaire();
+      modif = d.id; reqIdNouv = reqId; reqId = d.id;
+      const radio = document.querySelector('input[name=type][value="' + d.type + '"]');
+      if (radio) radio.checked = true;
+      description.remplir(d.description);
+      choisirType(d.type);
+      REMPLIR[d.type](d);
+      $('banniereModif').textContent = 'Modification de la demande ' + d.id + ' : une fois envoyée, le PDF est régénéré et le circuit de signature recommence (le bénéficiaire recevra un nouvel e-mail).';
+      $('banniereModif').classList.remove('hidden');
+      boiteType.classList.add('hidden');            // le type d'une demande ne change pas
+      afficherEcran('formulaire');
+      window.scrollTo({ top: 0 });
+    }
+
+    $('retourAccueil').onclick = annulerSaisie;
+    $('cancelSend').onclick = annulerSaisie;
+    boutonGestion.addEventListener('click', () => { gestion.fermer(); afficherEcran('gestion'); window.scrollTo({ top: 0 }); });
+
+    // « Retour à l'accueil » après l'envoi
+    $('again').onclick = () => {
+      reinitialiserFormulaire();
+      $('done').classList.add('hidden'); $('form').classList.remove('hidden'); window.scrollTo({ top: 0 });
+    };
+  </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","spa":2}' crossorigin="anonymous"></script>
+</body>
+
 </html>
