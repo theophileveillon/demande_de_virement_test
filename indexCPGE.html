@@ -539,7 +539,7 @@
       const stop = new AbortController(), minuteur = setTimeout(() => stop.abort(), 180000);
       let j;
       try {
-        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, mail: creds.mail, mdp: creds.mdp }), signal: stop.signal });
+        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, mail: creds.mail, password: creds.mdp }), signal: stop.signal });
         j = await r.json();
       } catch (_) { throw Error('Une erreur est survenue. Réessayez plus tard ; si l’erreur persiste, contactez la trésorerie.'); }
       finally { clearTimeout(minuteur); }
@@ -677,7 +677,7 @@
 
     // Écran « Ma demande »
     function montrerDemande() {
-      const d = ctx.demande, can = d.can || {};
+      const d = ctx.request, can = d.can || {};
       $('vId').textContent = d.id;
       $('vStatut').textContent = d.status || 'En attente de traitement';
       $('vTotal').textContent = eur(d.total_cents != null ? d.total_cents : totalCentimes(d.table));
@@ -721,7 +721,7 @@
       ecran('form');
     }
 
-    function entrer() { ctx.demande ? montrerDemande() : ouvrirFormulaire(null); }
+    function entrer() { ctx.request ? montrerDemande() : ouvrirFormulaire(null); }
 
     /* ===== 5. CONNEXION ===== */
     $('loginForm').onsubmit = async e => {
@@ -749,7 +749,7 @@
     $('logout').onclick = deconnecter;
 
     /* ===== 6. ACTIONS SUR LA DEMANDE ===== */
-    $('vModif').onclick = () => ouvrirFormulaire(ctx.demande);
+    $('vModif').onclick = () => ouvrirFormulaire(ctx.request);
     $('cancelForm').onclick = () => {
       if (!confirm('Abandonner la modification ? Les changements non envoyés seront perdus.')) return;
       montrerDemande();
@@ -758,7 +758,7 @@
     $('vSuppr').onclick = async e => {
       if (!confirm('Supprimer définitivement cette demande ? Vous pourrez en créer une nouvelle ensuite.')) return;
       const b = e.currentTarget; b.disabled = true; $('vErr').textContent = '';
-      try { await call({ action: 'delete', reqId: ctx.demande.id }); appliquerContexte(await call({ action: 'context' })); entrer(); }
+      try { await call({ action: 'delete', request_id: ctx.request.id }); appliquerContexte(await call({ action: 'context' })); entrer(); }
       catch (x) { $('vErr').textContent = x.message; }
       finally { b.disabled = false; }
     };
@@ -779,7 +779,7 @@
     }
     $('vPdf').onclick = async e => {
       const b = e.currentTarget; b.disabled = true; $('vErr').textContent = '';
-      try { const r = await call({ action: 'pdf', reqId: ctx.demande.id }); telecharger(r.name, r.data); }
+      try { const r = await call({ action: 'pdf', request_id: ctx.request.id }); telecharger(r.name, r.data); }
       catch (x) { $('vErr').textContent = x.message; }
       finally { b.disabled = false; }
     };
@@ -803,21 +803,21 @@
       }
       enCours = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progression('Préparation…', 5);
       try {
-        if (!modif && !reqId) reqId = (await call({ action: 'newRequest' })).reqId || '';
+        if (!modif && !reqId) reqId = (await call({ action: 'new_request' })).request_id || '';
         if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Réessayez.');
         const aEnvoyer = fichiersNDF.valeur(), rib = ribNDF.valeur()[0], total = aEnvoyer.length + 1, fileIds = [];
         const envoyer = async (f, kind, i) => {
           progression(`Envoi du fichier ${i + 1}/${total}…`, 10 + 80 * i / total);
-          if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', reqId, kind, name: f.name, data: await base64(f) })).fileId);
+          if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', request_id: reqId, kind, name: f.name, data: await base64(f) })).file_id);
           return f.fileId || dejaEnvoyes.get(f);
         };
         for (let i = 0; i < aEnvoyer.length; i++) fileIds.push(await envoyer(aEnvoyer[i], 'justif', i));
         const ribId = await envoyer(rib, 'rib', aEnvoyer.length);
         progression('Enregistrement de la demande…', 92);
-        await call({ action: modif ? 'update' : 'submit', reqId, name: $('fNom').value.trim(), firstName: $('fPrenom').value.trim(), table: tableauNDF.valeur(), fileIds, ribId });
+        await call({ action: modif ? 'update' : 'submit', request_id: reqId, name: $('fNom').value.trim(), first_name: $('fPrenom').value.trim(), table: tableauNDF.valeur(), file_ids: fileIds, rib_id: ribId });
         appliquerContexte(await call({ action: 'context' }));   // recharge la demande à jour
         dejaEnvoyes.clear(); reqId = ''; modif = false;
-        ctx.demande ? montrerDemande() : ouvrirFormulaire(null);
+        ctx.request ? montrerDemande() : ouvrirFormulaire(null);
       } catch (e) {
         console.error(e);
         $('sendErr').textContent = e.message;
