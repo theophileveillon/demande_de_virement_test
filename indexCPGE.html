@@ -486,6 +486,14 @@
           <button type="button" class="btn ghost" id="vSuppr">Supprimer ma demande</button>
         </div>
         <p class="mut hidden" id="vVerrou">Cette demande a été traitée par la trésorerie : elle ne peut plus être modifiée.</p>
+        <div class="note hidden" id="vSign">
+          <h3 style="margin-top:0">Signature de la note de frais</h3>
+          <p class="mut" id="vSignTxt"></p>
+          <div class="actions">
+            <label class="btn">Envoyer la note de frais signée (PDF)<input type="file" class="sr" id="vSignFile" accept=".pdf,application/pdf"></label>
+            <button type="button" class="btn ghost hidden" id="vSigned">Télécharger ma note de frais signée</button>
+          </div>
+        </div>
       </section>
 
       <!-- Écran 3 : formulaire NDF -->
@@ -712,6 +720,11 @@
       $('vVerrou').classList.toggle('hidden', !!can.edit);
       $('vPdf').classList.toggle('hidden', !can.pdf);
       $('vNdf').classList.toggle('hidden', !can.ndf);
+      $('vSign').classList.toggle('hidden', !can.sign);
+      $('vSigned').classList.toggle('hidden', !can.signed);
+      $('vSignTxt').textContent = can.signed
+        ? 'Votre note de frais signée a bien été reçue. Tant que la trésorerie ne l’a pas traitée, vous pouvez en envoyer une autre pour la remplacer.'
+        : 'Téléchargez la note de frais (vous l’avez aussi reçue par e-mail), signez-la dans le cadre « Signature du bénéficiaire », puis déposez ici le PDF signé. Si vous modifiez votre demande, la note de frais sera refaite et à signer de nouveau.';
       const rmb = d.amount_rmb_cents != null;
       $('vRmbT').classList.toggle('hidden', !rmb); $('vRmb').classList.toggle('hidden', !rmb);
       if (rmb) $('vRmb').textContent = eur(d.amount_rmb_cents);
@@ -803,6 +816,24 @@
     };
     $('vPdf').onclick = telechargerPdf('recap');
     $('vNdf').onclick = telechargerPdf('ndf');
+    $('vSigned').onclick = telechargerPdf('ndf_signed');
+
+    // Dépôt de la note de frais signée (PDF)
+    $('vSignFile').onchange = async e => {
+      const f = e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      $('vErr').textContent = '';
+      if (extension(f.name) !== 'pdf') { $('vErr').textContent = 'La note de frais signée doit être un fichier PDF.'; return; }
+      if (!f.size || f.size > MAX_BYTES) { $('vErr').textContent = 'Fichier vide ou supérieur à ' + MAX_BYTES / 1048576 + ' Mo.'; return; }
+      const entree = $('vSignFile'); entree.disabled = true;
+      try {
+        await call({ action: 'sign_ndf', request_id: ctx.request.id, name: f.name, data: await base64(f) });
+        appliquerContexte(await call({ action: 'context' }));
+        ctx.request ? montrerDemande() : ouvrirFormulaire(null);
+        alert('Votre note de frais signée a bien été envoyée à la trésorerie.');
+      } catch (x) { $('vErr').textContent = x.message; }
+      finally { entree.disabled = false; }
+    };
 
     /* ===== 7. ENVOI ===== */
     const dejaEnvoyes = new Map();   // File -> fileId : un nouvel essai ne renvoie pas les fichiers déjà partis
