@@ -477,6 +477,7 @@
         <div class="actions">
           <button type="button" class="btn" id="vModif">Modifier ma demande</button>
           <button type="button" class="btn ghost" id="vPdf">Télécharger le PDF</button>
+          <button type="button" class="btn ghost" id="vSuppr">Supprimer ma demande</button>
         </div>
         <p class="mut hidden" id="vVerrou">Cette demande ne peut plus être modifiée.</p>
       </section>
@@ -487,8 +488,15 @@
         <p class="warn hidden" id="banniere"></p>
         <p class="note">Les tickets de carte, les captures
           de compte bancaire ou les « j'te jure j'ai payé » ne permettent pas de créer une NDF.</p>
+        <h3>Identité <span class="req">*</span></h3>
+        <label class="f" for="fNom">Nom</label>
+        <input type="text" id="fNom" maxlength="80" autocomplete="family-name">
+        <label class="f" for="fPrenom">Prénom</label>
+        <input type="text" id="fPrenom" maxlength="80" autocomplete="given-name">
+        <p class="err" id="idErr" role="alert"></p>
         <div id="zoneTableau"></div>
         <div id="zoneFichiers"></div>
+        <div id="zoneRib"></div>
         <p class="err" id="sendErr" role="alert"></p>
         <button type="button" class="btn big" id="send">Envoyer ma demande</button>
         <p><button type="button" class="btn ghost big hidden" id="cancelForm" style="margin-top:.6rem">Annuler et
@@ -533,7 +541,7 @@
       try {
         const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, mail: creds.mail, mdp: creds.mdp }), signal: stop.signal });
         j = await r.json();
-      } catch (_) { throw Error('Impossible de joindre le serveur (ou délai dépassé) : vérifiez votre connexion puis réessayez.'); }
+      } catch (_) { throw Error('Une erreur est survenue. Réessayez plus tard ; si l’erreur persiste, contactez la trésorerie.'); }
       finally { clearTimeout(minuteur); }
       if (j.ok === false) { const e = Error(j.error || 'Erreur serveur'); e.code = j.code; throw e; }
       return j;
@@ -596,15 +604,19 @@
       return { el, valider, remplir, vider: () => remplir([]), valeur: () => [...lignes.children].map(lire).filter(remplie) };
     }
 
-    // Dépôt de justificatifs
-    function fichiers() {
+    // Dépôt de fichiers : justificatifs (plusieurs) ou RIB (un seul PDF, remplacé à chaque ajout)
+    function fichiers({ titre, aide, unique = false, ext = null }) {
       let liste = [], avis = '';
-      const el = html(`<div><h3></h3>
-    <p class="mut">Photos ou PDF uniquement (JPEG, PNG, HEIC, PDF) : 10 fichiers maximum, 10 Mo chacun.</p>
-    <label class="btn ghost">Ajouter des fichiers<input type="file" class="sr" multiple></label>
+      const el = html(`<div><h3></h3><p class="mut"></p>
+    <label class="btn ghost"><input type="file" class="sr"></label>
     <ul class="files"></ul><p class="err" role="alert"></p></div>`);
-      ecrireLabel(el.querySelector('h3'), 'Justificatifs', true);
+      ecrireLabel(el.querySelector('h3'), titre, true);
+      el.querySelector('.mut').textContent = aide;
+      el.querySelector('label').prepend(unique ? 'Choisir le RIB (PDF)' : 'Ajouter des fichiers');
       const input = el.querySelector('input'), ul = el.querySelector('ul'), msg = el.querySelector('.err');
+      const autorises = () => ext || EXT_OK;
+      input.multiple = !unique;
+      input.accept = autorises().map(x => '.' + x).join(',');
 
       function dessiner() {
         ul.innerHTML = '';
@@ -617,7 +629,7 @@
         });
       }
       const probleme = f =>
-        !EXT_OK.includes(extension(f.name)) ? `« ${f.name} » : format refusé. Téléversez un PDF ou une image.` :
+        !autorises().includes(extension(f.name)) ? `« ${f.name} » : format refusé. ${unique ? 'Le RIB doit être un PDF.' : 'Téléversez un PDF ou une image.'}` :
           !f.size ? `« ${f.name} » est vide.` :
             f.size > MAX_BYTES ? `« ${f.name} » dépasse ${MAX_BYTES / 1048576} Mo.` : '';
 
@@ -626,20 +638,24 @@
         for (const f of e.target.files) {
           const p = probleme(f);
           if (p) { refus.push(p); continue; }
+          if (unique) { liste = [f]; continue; }
           if (liste.some(x => x.name === f.name && x.size === f.size)) continue;
           if (liste.length >= MAX_FILES) { refus.push(`${MAX_FILES} fichiers maximum : « ${f.name} » non ajouté.`); continue; }
           liste.push(f);
         }
         avis = refus.join(' '); e.target.value = ''; dessiner(); valider();
       };
-      function valider() { msg.textContent = avis || (liste.length ? '' : 'Ajoutez au moins un justificatif (photo, PDF…).'); return !msg.textContent; }
+      function valider() { msg.textContent = avis || (liste.length ? '' : unique ? 'Ajoutez votre RIB (PDF).' : 'Ajoutez au moins un justificatif (photo, PDF…).'); return !msg.textContent; }
       const precharger = items => { liste = (items || []).map(f => ({ name: f.name, size: f.size || 0, fileId: f.id })); avis = ''; dessiner(); };
       return { el, valider, precharger, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
     }
 
-    const tableauNDF = tableau(), fichiersNDF = fichiers();
+    const tableauNDF = tableau();
+    const fichiersNDF = fichiers({ titre: 'Justificatifs', aide: 'Photos ou PDF uniquement (JPEG, PNG, HEIC, PDF) : 10 fichiers maximum, 10 Mo chacun.' });
+    const ribNDF = fichiers({ titre: 'RIB', aide: 'Un seul fichier PDF (10 Mo maximum).', unique: true, ext: ['pdf'] });
     $('zoneTableau').append(tableauNDF.el);
     $('zoneFichiers').append(fichiersNDF.el);
+    $('zoneRib').append(ribNDF.el);
 
     /* ===== 4. ÉCRANS ===== */
     function ecran(nom) {                        // 'login' | 'view' | 'form'
@@ -676,13 +692,14 @@
       });
       $('vLignes').append(t);
       $('vFichiers').innerHTML = '';
-      (d.files || []).forEach(f => {
+      [...(d.rib ? [{ ...d.rib, name: 'RIB : ' + d.rib.name }] : []), ...(d.files || [])].forEach(f => {
         const li = html('<li><span></span><small></small></li>');
         li.querySelector('span').textContent = f.name;
         li.querySelector('small').textContent = f.size ? (f.size / 1048576).toFixed(1) + ' Mo' : '';
         $('vFichiers').append(li);
       });
       $('vModif').classList.toggle('hidden', !can.edit);
+      $('vSuppr').classList.toggle('hidden', !can.edit);
       $('vVerrou').classList.toggle('hidden', !!can.edit);
       $('vPdf').classList.toggle('hidden', !can.pdf);
       $('vErr').textContent = '';
@@ -692,9 +709,11 @@
     function ouvrirFormulaire(d) {
       modif = !!d; reqId = d ? d.id : '';
       dejaEnvoyes.clear();
-      tableauNDF.vider(); fichiersNDF.vider();
-      $('sendErr').textContent = '';
-      if (d) { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); }
+      tableauNDF.vider(); fichiersNDF.vider(); ribNDF.vider();
+      $('sendErr').textContent = ''; $('idErr').textContent = '';
+      const u = (ctx && ctx.user) || {};
+      $('fNom').value = d ? d.name : (u.name || ''); $('fPrenom').value = d ? d.first_name : (u.first_name || '');
+      if (d) { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); ribNDF.precharger(d.rib ? [d.rib] : []); }
       $('formTitre').textContent = d ? 'Modifier ma demande ' + d.id : 'Note de frais';
       $('banniere').textContent = 'Une fois envoyée, votre demande est mise à jour et le circuit de validation recommence.';
       $('banniere').classList.toggle('hidden', !d);
@@ -722,7 +741,8 @@
 
     function deconnecter() {
       creds = null; ctx = null; reqId = ''; modif = false; dejaEnvoyes.clear();
-      tableauNDF.vider(); fichiersNDF.vider();
+      tableauNDF.vider(); fichiersNDF.vider(); ribNDF.vider();
+      $('fNom').value = ''; $('fPrenom').value = '';
       $('mail').value = ''; $('mdp').value = ''; $('loginErr').textContent = '';
       ecran('login');
     }
@@ -733,6 +753,19 @@
     $('cancelForm').onclick = () => {
       if (!confirm('Abandonner la modification ? Les changements non envoyés seront perdus.')) return;
       montrerDemande();
+    };
+
+    $('vSuppr').onclick = async e => {
+      if (!confirm('Supprimer définitivement cette demande ? Vous pourrez en créer une nouvelle ensuite.')) return;
+      const b = e.currentTarget; b.disabled = true; $('vErr').textContent = '';
+      try { await call({ action: 'delete', reqId: ctx.demande.id }); appliquerContexte(await call({ action: 'context' })); entrer(); }
+      catch (x) { $('vErr').textContent = x.message; }
+      finally { b.disabled = false; }
+    };
+    const identiteOk = () => {
+      const ok = $('fNom').value.trim() && $('fPrenom').value.trim();
+      $('idErr').textContent = ok ? '' : 'Renseignez votre nom et votre prénom.';
+      return !!ok;
     };
 
     function telecharger(nom, base64) {
@@ -765,22 +798,23 @@
     $('send').onclick = async () => {
       if (enCours) return;
       $('sendErr').textContent = '';
-      if (![tableauNDF, fichiersNDF].map(c => c.valider()).every(Boolean)) {
+      if (![tableauNDF, fichiersNDF, ribNDF].map(c => c.valider()).concat(identiteOk()).every(Boolean)) {
         $('sendErr').textContent = 'Certains champs sont à corriger (messages en rouge).'; return;
       }
       enCours = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progression('Préparation…', 5);
       try {
         if (!modif && !reqId) reqId = (await call({ action: 'newRequest' })).reqId || '';
         if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Réessayez.');
-        const aEnvoyer = fichiersNDF.valeur(), fileIds = [];
-        for (let i = 0; i < aEnvoyer.length; i++) {
-          const f = aEnvoyer[i];
-          progression(`Envoi du fichier ${i + 1}/${aEnvoyer.length}…`, 10 + 80 * i / aEnvoyer.length);
-          if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', reqId, name: f.name, data: await base64(f) })).fileId);
-          fileIds.push(f.fileId || dejaEnvoyes.get(f));
-        }
+        const aEnvoyer = fichiersNDF.valeur(), rib = ribNDF.valeur()[0], total = aEnvoyer.length + 1, fileIds = [];
+        const envoyer = async (f, kind, i) => {
+          progression(`Envoi du fichier ${i + 1}/${total}…`, 10 + 80 * i / total);
+          if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', reqId, kind, name: f.name, data: await base64(f) })).fileId);
+          return f.fileId || dejaEnvoyes.get(f);
+        };
+        for (let i = 0; i < aEnvoyer.length; i++) fileIds.push(await envoyer(aEnvoyer[i], 'justif', i));
+        const ribId = await envoyer(rib, 'rib', aEnvoyer.length);
         progression('Enregistrement de la demande…', 92);
-        await call({ action: modif ? 'update' : 'submit', reqId, table: tableauNDF.valeur(), fileIds });
+        await call({ action: modif ? 'update' : 'submit', reqId, name: $('fNom').value.trim(), firstName: $('fPrenom').value.trim(), table: tableauNDF.valeur(), fileIds, ribId });
         appliquerContexte(await call({ action: 'context' }));   // recharge la demande à jour
         dejaEnvoyes.clear(); reqId = ''; modif = false;
         ctx.demande ? montrerDemande() : ouvrirFormulaire(null);
