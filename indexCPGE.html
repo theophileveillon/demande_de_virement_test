@@ -1,1 +1,796 @@
+<!doctype html>
+<html lang="fr">
 
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Demande de remboursement – AEn7</title>
+  <style>
+    :root {
+      --pri: #A569BD;
+      --pri2: #6C3483;
+      --pri-lt: #F6F0F9;
+      --bd: #d9d9d9;
+      --txt: #222;
+      --mut: #666;
+      --err: #b3261e
+    }
+
+    * {
+      box-sizing: border-box;
+      border-radius: 0
+    }
+
+    body {
+      margin: 0;
+      color: var(--txt);
+      background: #fff;
+      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .hero {
+      text-align: center;
+      padding: 2rem 1rem 1.5rem;
+      border-bottom: 4px solid var(--pri)
+    }
+
+    .hero img {
+      height: 80px;
+      max-width: 80%;
+      object-fit: contain;
+      margin-bottom: .8rem
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      font-weight: 600
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin: .6rem auto 0;
+      color: var(--mut)
+    }
+
+    main {
+      max-width: 760px;
+      margin: 1.5rem auto 2rem;
+      padding: 0 1rem
+    }
+
+    .card {
+      border: 1px solid var(--bd);
+      border-top: 3px solid var(--pri);
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1.2rem
+    }
+
+    .card h2 {
+      margin: 0 0 .4rem;
+      font-size: 1.25rem
+    }
+
+    .card h3 {
+      margin: 1.4rem 0 .3rem;
+      font-size: 1.02rem
+    }
+
+    .mut {
+      color: var(--mut);
+      font-size: .92rem;
+      margin: .2rem 0 .6rem
+    }
+
+    .note {
+      background: var(--pri-lt);
+      border-left: 3px solid var(--pri);
+      padding: .6rem .9rem;
+      margin: .6rem 0
+    }
+
+    .warn {
+      border: 1px solid var(--pri);
+      background: var(--pri-lt);
+      padding: .7rem .9rem;
+      font-weight: 600;
+      margin: 0 0 1rem
+    }
+
+    label.f {
+      display: block;
+      margin: 1rem 0 .25rem;
+      font-weight: 600
+    }
+
+    .req {
+      color: var(--err);
+      font-weight: 700
+    }
+
+    input[type=text],
+    input[type=email],
+    input[type=password],
+    input[type=number] {
+      width: 100%;
+      padding: .55rem .65rem;
+      border: 1px solid #bbb;
+      font: inherit;
+      background: #fff;
+      color: var(--txt)
+    }
+
+    input:focus {
+      outline: 2px solid var(--pri);
+      border-color: var(--pri)
+    }
+
+    .err {
+      color: var(--err);
+      font-size: .88rem;
+      min-height: 1.1em;
+      margin: .25rem 0 0
+    }
+
+    .btn {
+      display: inline-block;
+      border: 1px solid var(--pri);
+      padding: .55rem 1.1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--pri);
+      color: #fff
+    }
+
+    .btn.ghost {
+      background: #fff;
+      color: var(--pri2)
+    }
+
+    .btn:hover {
+      background: var(--pri2);
+      border-color: var(--pri2);
+      color: #fff
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: wait
+    }
+
+    .btn.big {
+      width: 100%;
+      padding: .85rem;
+      font-size: 1.05rem
+    }
+
+    .actions {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      margin: .8rem 0
+    }
+
+    .bar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .5rem
+    }
+
+    .bar-top .btn {
+      padding: .3rem .8rem;
+      font-size: .9rem
+    }
+
+    .lt-head,
+    .lt-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1.3fr 1fr 2.2rem;
+      gap: .5rem;
+      align-items: center
+    }
+
+    .lt-head {
+      font-weight: 600;
+      font-size: .85rem;
+      color: var(--mut)
+    }
+
+    .lt-row {
+      margin: .4rem 0
+    }
+
+    .lt-row label span {
+      position: absolute;
+      left: -9999px
+    }
+
+    .lt-row .line {
+      text-align: right;
+      font-weight: 600
+    }
+
+    .x {
+      border: 1px solid var(--bd);
+      background: #fff;
+      color: var(--mut);
+      height: 2.2rem;
+      font-size: 1.1rem;
+      cursor: pointer
+    }
+
+    .x:hover {
+      border-color: var(--err);
+      color: var(--err)
+    }
+
+    .total {
+      text-align: right;
+      font-size: 1.1rem;
+      margin: .8rem 0 0
+    }
+
+    .total .neg {
+      color: var(--err)
+    }
+
+    @media(max-width:640px) {
+      .lt-head {
+        display: none
+      }
+
+      .lt-row {
+        grid-template-columns: 1fr 1fr 2.2rem;
+        padding: .6rem;
+        border: 1px solid var(--bd)
+      }
+
+      .lt-row label:first-child {
+        grid-column: 1/-1
+      }
+
+      .lt-row label span {
+        position: static;
+        display: block;
+        font-size: .8rem;
+        color: var(--mut)
+      }
+
+      .lt-row .x {
+        grid-column: 3;
+        grid-row: 2
+      }
+
+      .lt-row .line {
+        grid-column: 1/-1
+      }
+    }
+
+    .files {
+      list-style: none;
+      padding: 0;
+      margin: .5rem 0 0
+    }
+
+    .files li {
+      display: flex;
+      gap: .6rem;
+      align-items: center;
+      border: 1px solid var(--bd);
+      padding: .3rem .3rem .3rem .7rem;
+      margin: .3rem 0
+    }
+
+    .files li span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .files li small {
+      color: var(--mut)
+    }
+
+    .files .x {
+      height: 1.9rem;
+      width: 1.9rem
+    }
+
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0)
+    }
+
+    label.btn {
+      position: relative
+    }
+
+    label.btn:focus-within {
+      outline: 2px solid var(--pri2);
+      outline-offset: 2px
+    }
+
+    table.suivi {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .92rem
+    }
+
+    table.suivi th,
+    table.suivi td {
+      padding: .5rem .6rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd
+    }
+
+    table.suivi th {
+      color: var(--mut);
+      font-weight: 600
+    }
+
+    table.suivi .num {
+      text-align: right;
+      white-space: nowrap
+    }
+
+    .scroll {
+      overflow-x: auto
+    }
+
+    dl.infos {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: .3rem 1.2rem;
+      margin: .6rem 0
+    }
+
+    dl.infos dt {
+      color: var(--mut)
+    }
+
+    dl.infos dd {
+      margin: 0;
+      font-weight: 600
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: #000a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+      padding: 1rem
+    }
+
+    #overlay .box {
+      background: #fff;
+      border-top: 4px solid var(--pri);
+      padding: 1.8rem;
+      max-width: 440px;
+      width: 100%
+    }
+
+    #overlay h2 {
+      margin: 0 0 .5rem;
+      font-size: 1.2rem
+    }
+
+    .bar {
+      height: 12px;
+      background: var(--pri-lt);
+      border: 1px solid var(--bd);
+      margin: 1rem 0 .6rem;
+      overflow: hidden
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      width: 0;
+      transition: width .4s;
+      background: repeating-linear-gradient(45deg, var(--pri) 0 10px, var(--pri2) 10px 20px);
+      background-size: 28px 28px;
+      animation: move 1s linear infinite
+    }
+
+    @keyframes move {
+      to {
+        background-position: 28px 0
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      .bar i {
+        animation: none
+      }
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: .9rem
+    }
+
+    footer a {
+      color: var(--pri2)
+    }
+  </style>
+</head>
+
+<body>
+  <header class="hero">
+    <img src="logo_AE.png" alt="Logo de l'AEn7" onerror="this.remove()">
+    <h1>Demande de remboursement CPGE</h1>
+    <p>Ce formulaire permet de faire une demande de remboursement pour les dépenses liées au déplacement vers un forum
+      CPGE.</p>
+  </header>
+
+  <main>
+    <!-- Écran 1 : connexion -->
+    <section class="card" id="login">
+      <h2>Connexion</h2>
+      <form id="loginForm" novalidate>
+        <label class="f" for="mail">Adresse e-mail</label>
+        <input type="email" id="mail" autocomplete="username" required>
+        <label class="f" for="mdp">Mot de passe</label>
+        <input type="password" id="mdp" autocomplete="current-password" required>
+        <p class="err" id="loginErr" role="alert"></p>
+        <button type="submit" class="btn big" id="loginBtn">Se connecter</button>
+      </form>
+    </section>
+
+    <div id="app" class="hidden">
+      <div class="bar-top">
+        <p class="mut" id="who"></p>
+        <button type="button" class="btn ghost" id="logout">Se déconnecter</button>
+      </div>
+
+      <!-- Écran 2 : ma demande (consultation) -->
+      <section class="card hidden" id="view">
+        <h2>Ma demande</h2>
+        <dl class="infos">
+          <dt>N° de demande</dt>
+          <dd id="vId"></dd>
+          <dt>Statut</dt>
+          <dd id="vStatut"></dd>
+          <dt>Montant total</dt>
+          <dd id="vTotal"></dd>
+        </dl>
+        <h3>Détail des lignes</h3>
+        <div class="scroll" id="vLignes"></div>
+        <h3>Justificatifs</h3>
+        <ul class="files" id="vFichiers"></ul>
+        <p class="err" id="vErr" role="alert"></p>
+        <div class="actions">
+          <button type="button" class="btn" id="vModif">Modifier ma demande</button>
+          <button type="button" class="btn ghost" id="vPdf">Télécharger le PDF</button>
+        </div>
+        <p class="mut hidden" id="vVerrou">Cette demande ne peut plus être modifiée.</p>
+      </section>
+
+      <!-- Écran 3 : formulaire NDF -->
+      <section class="card hidden" id="formCard">
+        <h2 id="formTitre">Note de frais</h2>
+        <p class="warn hidden" id="banniere"></p>
+        <p class="note">Une NDF permet UNIQUEMENT de rembourser un membre de l'AEn7. Les tickets de carte, les captures
+          de compte bancaire ou les « je te jure j'ai payé » ne permettent pas de créer une NDF.</p>
+        <div id="zoneTableau"></div>
+        <div id="zoneFichiers"></div>
+        <p class="err" id="sendErr" role="alert"></p>
+        <button type="button" class="btn big" id="send">Envoyer ma demande</button>
+        <p><button type="button" class="btn ghost big hidden" id="cancelForm" style="margin-top:.6rem">Annuler et
+            revenir à ma demande</button></p>
+      </section>
+    </div>
+  </main>
+
+  <div id="overlay" class="hidden" role="alertdialog" aria-live="assertive">
+    <div class="box">
+      <h2>Envoi en cours…</h2>
+      <p id="sendMsg"></p>
+      <div class="bar"><i id="barFill"></i></div>
+      <p class="mut">Cela peut prendre un moment. Merci de ne pas fermer cette page.</p>
+    </div>
+  </div>
+
+  <footer><a href="confidentialite.html">Politique de confidentialité</a></footer>
+
+  <script>
+    /* ===== 1. OUTILS ===== */
+    const $ = id => document.getElementById(id);
+    const html = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
+    const eur = c => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    const extension = n => (n.match(/\.([A-Za-z0-9]+)$/) || ['', ''])[1].toLowerCase();
+    const plusDeCentimes = v => Math.abs(v * 100 - Math.round(v * 100)) > 1e-6;
+    // Même formule que le serveur : prix arrondi au centime, puis quantité × centimes
+    const centimes = l => Math.round((+l.qte || 0) * Math.round((+l.pu || 0) * 100));
+    const totalCentimes = lignes => (lignes || []).reduce((s, l) => s + centimes(l), 0);
+    const ecrireLabel = (el, txt, obligatoire) => { el.textContent = txt; if (obligatoire) el.append(html('<span class="req"> *</span>')); };
+
+    /* ===== 2. SERVEUR ===== */
+    const API = 'https://script.google.com/macros/s/AKfycbzMbSD64Go4A1DxJd7lBV9Nv42o4kFwF4T1DV8ifXd48KgJIYzKzMZv4Avsd-IyujvMmw/exec';
+    let creds = null;      // { mail, mdp } gardés en mémoire uniquement (jamais stockés)
+    let ctx = null;        // réponse de l'action « context » : { user, demande, limites… }
+    let reqId = '', modif = false;
+    let MAX_FILES = 10, MAX_BYTES = 10 * 1024 * 1024, EXT_OK = ['jpg', 'jpeg', 'png', 'heic', 'heif', 'pdf'];
+
+    async function call(payload) {
+      const stop = new AbortController(), minuteur = setTimeout(() => stop.abort(), 180000);
+      let j;
+      try {
+        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, mail: creds.mail, mdp: creds.mdp }), signal: stop.signal });
+        j = await r.json();
+      } catch (_) { throw Error('Impossible de joindre le serveur (ou délai dépassé) : vérifiez votre connexion puis réessayez.'); }
+      finally { clearTimeout(minuteur); }
+      if (j.ok === false) { const e = Error(j.error || 'Erreur serveur'); e.code = j.code; throw e; }
+      return j;
+    }
+
+    /* ===== 3. COMPOSANTS ===== */
+    // Tableau nom / quantité / prix unitaire
+    function tableau() {
+      const el = html(`<div><h3></h3>
+    <div class="lt-head"><span>Nom</span><span>Quantité</span><span>Prix unitaire</span><span style="text-align:right">Total</span><span></span></div>
+    <div class="rows"></div>
+    <button type="button" class="btn ghost add">+ Ajouter une ligne</button>
+    <p class="total">Total : <strong>0,00 €</strong></p><p class="err" role="alert"></p></div>`);
+      ecrireLabel(el.querySelector('h3'), 'Tableau de la NDF', true);
+      const lignes = el.querySelector('.rows'), total = el.querySelector('.total strong'), msg = el.querySelector('.err');
+
+      const lire = d => ({ nom: d.querySelector('.name').value.trim(), qte: d.querySelector('.qty').value, pu: d.querySelector('.price').value });
+      const remplie = l => l.nom || l.qte || l.pu;
+
+      function recalculer() {
+        let somme = 0;
+        [...lignes.children].forEach(d => { const c = centimes(lire(d)); d.querySelector('.line').textContent = eur(c); somme += c; });
+        total.textContent = eur(somme); total.classList.toggle('neg', somme < 0);
+        return somme;
+      }
+      function message() {
+        const toutes = [...lignes.children].map(lire), utiles = toutes.filter(remplie), somme = recalculer();
+        const mauvaise = toutes.findIndex(l => remplie(l) && (!l.nom || !(+l.qte > 0) || l.pu === '' || isNaN(+l.pu)));
+        if (!utiles.length) return 'Ajoutez au moins une ligne avec un nom, une quantité et un prix unitaire.';
+        if (mauvaise >= 0) return `La ligne ${mauvaise + 1} est incomplète : il faut un nom, une quantité positive et un prix unitaire.`;
+        if (utiles.some(l => plusDeCentimes(+l.pu))) return 'Les prix unitaires doivent être exprimés au centime près (2 décimales maximum).';
+        if (somme <= 0) return 'Le total général doit être strictement positif.';
+        return '';
+      }
+      const valider = () => { msg.textContent = message(); return !msg.textContent; };
+
+      function ajouter({ nom = '', qte = '', pu = '' } = {}) {
+        const d = html(`<div class="lt-row">
+      <label><span>Nom</span><input type="text" class="name" maxlength="200" placeholder="Ex : Billet de train"></label>
+      <label><span>Quantité</span><input type="number" class="qty" step="any" inputmode="decimal" placeholder="1"></label>
+      <label><span>Prix unitaire (€)</span><input type="number" class="price" step="0.01" inputmode="decimal" placeholder="0,00"></label>
+      <output class="line">0,00 €</output>
+      <button type="button" class="x" aria-label="Supprimer la ligne">×</button></div>`);
+        d.querySelector('.name').value = nom; d.querySelector('.qty').value = qte; d.querySelector('.price').value = pu;
+        d.addEventListener('input', () => { recalculer(); if (msg.textContent) valider(); });
+        d.querySelector('.x').onclick = () => {
+          if (lignes.children.length > 1) d.remove(); else d.querySelectorAll('input').forEach(i => i.value = '');
+          recalculer();
+        };
+        lignes.append(d); recalculer();
+      }
+      el.querySelector('.add').onclick = () => ajouter();
+      const remplir = liste => {
+        lignes.innerHTML = '';
+        (liste || []).forEach(l => ajouter({ nom: String(l.nom), qte: String(l.qte), pu: String(l.pu) }));
+        if (!lignes.children.length) ajouter();
+        msg.textContent = '';
+      };
+      ajouter();
+      return { el, valider, remplir, vider: () => remplir([]), valeur: () => [...lignes.children].map(lire).filter(remplie) };
+    }
+
+    // Dépôt de justificatifs
+    function fichiers() {
+      let liste = [], avis = '';
+      const el = html(`<div><h3></h3>
+    <p class="mut">Photos ou PDF uniquement (JPEG, PNG, HEIC, PDF) : 10 fichiers maximum, 10 Mo chacun.</p>
+    <label class="btn ghost">Ajouter des fichiers<input type="file" class="sr" multiple></label>
+    <ul class="files"></ul><p class="err" role="alert"></p></div>`);
+      ecrireLabel(el.querySelector('h3'), 'Justificatifs', true);
+      const input = el.querySelector('input'), ul = el.querySelector('ul'), msg = el.querySelector('.err');
+
+      function dessiner() {
+        ul.innerHTML = '';
+        liste.forEach((f, i) => {
+          const li = html('<li><span></span><small></small><button type="button" class="x" aria-label="Retirer ce fichier">×</button></li>');
+          li.querySelector('span').textContent = f.name;
+          li.querySelector('small').textContent = (f.size / 1048576).toFixed(1) + ' Mo';
+          li.querySelector('button').onclick = () => { liste.splice(i, 1); avis = ''; dessiner(); if (msg.textContent) valider(); };
+          ul.append(li);
+        });
+      }
+      const probleme = f =>
+        !EXT_OK.includes(extension(f.name)) ? `« ${f.name} » : format refusé. Téléversez un PDF ou une image.` :
+          !f.size ? `« ${f.name} » est vide.` :
+            f.size > MAX_BYTES ? `« ${f.name} » dépasse ${MAX_BYTES / 1048576} Mo.` : '';
+
+      input.onchange = e => {
+        const refus = [];
+        for (const f of e.target.files) {
+          const p = probleme(f);
+          if (p) { refus.push(p); continue; }
+          if (liste.some(x => x.name === f.name && x.size === f.size)) continue;
+          if (liste.length >= MAX_FILES) { refus.push(`${MAX_FILES} fichiers maximum : « ${f.name} » non ajouté.`); continue; }
+          liste.push(f);
+        }
+        avis = refus.join(' '); e.target.value = ''; dessiner(); valider();
+      };
+      function valider() { msg.textContent = avis || (liste.length ? '' : 'Ajoutez au moins un justificatif (photo, PDF…).'); return !msg.textContent; }
+      const precharger = items => { liste = (items || []).map(f => ({ name: f.name, size: f.size || 0, fileId: f.id })); avis = ''; dessiner(); };
+      return { el, valider, precharger, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
+    }
+
+    const tableauNDF = tableau(), fichiersNDF = fichiers();
+    $('zoneTableau').append(tableauNDF.el);
+    $('zoneFichiers').append(fichiersNDF.el);
+
+    /* ===== 4. ÉCRANS ===== */
+    function ecran(nom) {                        // 'login' | 'view' | 'form'
+      $('login').classList.toggle('hidden', nom !== 'login');
+      $('app').classList.toggle('hidden', nom === 'login');
+      $('view').classList.toggle('hidden', nom !== 'view');
+      $('formCard').classList.toggle('hidden', nom !== 'form');
+      window.scrollTo({ top: 0 });
+    }
+
+    function appliquerContexte(x) {
+      ctx = x;
+      if (x.max_files) MAX_FILES = x.max_files;
+      if (x.max_file_bytes) MAX_BYTES = x.max_file_bytes;
+      if (Array.isArray(x.ext_ok)) EXT_OK = x.ext_ok;
+      const u = x.user || {};
+      $('who').textContent = 'Connecté : ' + (((u.first_name || '') + ' ' + (u.name || '')).trim() || creds.mail);
+    }
+
+    // Écran « Ma demande »
+    function montrerDemande() {
+      const d = ctx.demande, can = d.can || {};
+      $('vId').textContent = d.id;
+      $('vStatut').textContent = d.status || 'En attente de traitement';
+      $('vTotal').textContent = eur(d.total_cents != null ? d.total_cents : totalCentimes(d.table));
+      $('vLignes').innerHTML = '';
+      const t = html('<table class="suivi"><thead><tr><th>Nom</th><th class="num">Quantité</th><th class="num">Prix unitaire</th><th class="num">Total</th></tr></thead><tbody></tbody></table>');
+      (d.table || []).forEach(l => {
+        const tr = document.createElement('tr');
+        [[l.nom, ''], [l.qte, 'num'], [eur(Math.round((+l.pu || 0) * 100)), 'num'], [eur(centimes(l)), 'num']].forEach(([v, c]) => {
+          const td = document.createElement('td'); td.textContent = v; if (c) td.className = c; tr.append(td);
+        });
+        t.querySelector('tbody').append(tr);
+      });
+      $('vLignes').append(t);
+      $('vFichiers').innerHTML = '';
+      (d.files || []).forEach(f => {
+        const li = html('<li><span></span><small></small></li>');
+        li.querySelector('span').textContent = f.name;
+        li.querySelector('small').textContent = f.size ? (f.size / 1048576).toFixed(1) + ' Mo' : '';
+        $('vFichiers').append(li);
+      });
+      $('vModif').classList.toggle('hidden', !can.edit);
+      $('vVerrou').classList.toggle('hidden', !!can.edit);
+      $('vPdf').classList.toggle('hidden', !can.pdf);
+      $('vErr').textContent = '';
+      ecran('view');
+    }
+
+    // Écran « Formulaire » : d = demande à modifier, ou null pour une nouvelle demande
+    function ouvrirFormulaire(d) {
+      modif = !!d; reqId = d ? d.id : '';
+      dejaEnvoyes.clear();
+      tableauNDF.vider(); fichiersNDF.vider();
+      $('sendErr').textContent = '';
+      if (d) { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); }
+      $('formTitre').textContent = d ? 'Modifier ma demande ' + d.id : 'Note de frais';
+      $('banniere').textContent = 'Une fois envoyée, votre demande est mise à jour et le circuit de validation recommence.';
+      $('banniere').classList.toggle('hidden', !d);
+      $('cancelForm').classList.toggle('hidden', !d);
+      ecran('form');
+    }
+
+    function entrer() { ctx.demande ? montrerDemande() : ouvrirFormulaire(null); }
+
+    /* ===== 5. CONNEXION ===== */
+    $('loginForm').onsubmit = async e => {
+      e.preventDefault();
+      const mail = $('mail').value.trim().toLowerCase(), mdp = $('mdp').value;
+      $('loginErr').textContent = '';
+      if (!mail || !mdp) { $('loginErr').textContent = 'Saisissez votre adresse e-mail et votre mot de passe.'; return; }
+      $('loginBtn').disabled = true;
+      creds = { mail, mdp };
+      try {
+        appliquerContexte(await call({ action: 'context' }));
+        $('mdp').value = '';
+        entrer();
+      } catch (x) { creds = null; $('loginErr').textContent = x.message; }
+      finally { $('loginBtn').disabled = false; }
+    };
+
+    function deconnecter() {
+      creds = null; ctx = null; reqId = ''; modif = false; dejaEnvoyes.clear();
+      tableauNDF.vider(); fichiersNDF.vider();
+      $('mail').value = ''; $('mdp').value = ''; $('loginErr').textContent = '';
+      ecran('login');
+    }
+    $('logout').onclick = deconnecter;
+
+    /* ===== 6. ACTIONS SUR LA DEMANDE ===== */
+    $('vModif').onclick = () => ouvrirFormulaire(ctx.demande);
+    $('cancelForm').onclick = () => {
+      if (!confirm('Abandonner la modification ? Les changements non envoyés seront perdus.')) return;
+      montrerDemande();
+    };
+
+    function telecharger(nom, base64) {
+      const bin = atob(base64), octets = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) octets[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([octets], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = /\.pdf$/i.test(nom) ? nom : nom + '.pdf';
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+    $('vPdf').onclick = async e => {
+      const b = e.currentTarget; b.disabled = true; $('vErr').textContent = '';
+      try { const r = await call({ action: 'pdf', reqId: ctx.demande.id }); telecharger(r.name, r.data); }
+      catch (x) { $('vErr').textContent = x.message; }
+      finally { b.disabled = false; }
+    };
+
+    /* ===== 7. ENVOI ===== */
+    const dejaEnvoyes = new Map();   // File -> fileId : un nouvel essai ne renvoie pas les fichiers déjà partis
+    const base64 = f => new Promise((ok, ko) => {
+      const r = new FileReader();
+      r.onload = () => ok(r.result.split(',')[1]);
+      r.onerror = () => ko(Error('Lecture du fichier impossible.'));
+      r.readAsDataURL(f);
+    });
+    const progression = (msg, pct) => { $('sendMsg').textContent = msg; $('barFill').style.width = pct + '%'; };
+    let enCours = false;
+
+    $('send').onclick = async () => {
+      if (enCours) return;
+      $('sendErr').textContent = '';
+      if (![tableauNDF, fichiersNDF].map(c => c.valider()).every(Boolean)) {
+        $('sendErr').textContent = 'Certains champs sont à corriger (messages en rouge).'; return;
+      }
+      enCours = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progression('Préparation…', 5);
+      try {
+        if (!modif && !reqId) reqId = (await call({ action: 'newRequest' })).reqId || '';
+        if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Réessayez.');
+        const aEnvoyer = fichiersNDF.valeur(), fileIds = [];
+        for (let i = 0; i < aEnvoyer.length; i++) {
+          const f = aEnvoyer[i];
+          progression(`Envoi du fichier ${i + 1}/${aEnvoyer.length}…`, 10 + 80 * i / aEnvoyer.length);
+          if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', reqId, name: f.name, data: await base64(f) })).fileId);
+          fileIds.push(f.fileId || dejaEnvoyes.get(f));
+        }
+        progression('Enregistrement de la demande…', 92);
+        await call({ action: modif ? 'update' : 'submit', reqId, table: tableauNDF.valeur(), fileIds });
+        appliquerContexte(await call({ action: 'context' }));   // recharge la demande à jour
+        dejaEnvoyes.clear(); reqId = ''; modif = false;
+        ctx.demande ? montrerDemande() : ouvrirFormulaire(null);
+      } catch (e) {
+        console.error(e);
+        $('sendErr').textContent = e.message;
+      } finally { enCours = false; $('send').disabled = false; $('overlay').classList.add('hidden'); }
+    };
+  </script>
+</body>
+
+</html>
