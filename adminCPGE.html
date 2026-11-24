@@ -261,37 +261,87 @@
       color: var(--pri2)
     }
 
-    .pay {
-      background: var(--pri-lt);
-      border-left: 3px solid var(--pri);
-      padding: .8rem 1rem;
-      margin-top: 1rem
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: .8rem;
+      margin-top: 1.1rem
     }
 
-    .pay label {
-      font-weight: 600;
-      display: block;
-      margin-bottom: .25rem
-    }
-
-    .pay .line {
+    .step {
+      border: 1px solid var(--bd);
+      border-top: 3px solid var(--pri);
+      padding: .7rem .8rem;
       display: flex;
-      gap: .6rem;
-      flex-wrap: wrap;
-      align-items: center
+      flex-direction: column;
+      gap: .45rem
     }
 
-    .pay input {
-      width: 9rem;
+    .step.done {
+      border-top-color: var(--ok)
+    }
+
+    .step h3 {
+      margin: 0;
+      font-size: .95rem
+    }
+
+    .step h3 span {
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      line-height: 1.5rem;
+      text-align: center;
+      background: var(--pri);
+      color: #fff;
+      margin-right: .3rem;
+      font-size: .85rem
+    }
+
+    .step .btn {
+      width: 100%
+    }
+
+    .step input[type=text] {
+      width: 100%;
       padding: .5rem .6rem;
       border: 1px solid #bbb;
       font: inherit;
       text-align: right
     }
 
-    .pay input:focus {
+    .step input[type=text]:focus {
       outline: 2px solid var(--pri);
       border-color: var(--pri)
+    }
+
+    .step input[type=text]:disabled {
+      background: #f3f3f3;
+      color: var(--mut)
+    }
+
+    .step .mut {
+      margin: 0;
+      font-size: .85rem
+    }
+
+    .check {
+      display: flex;
+      gap: .6rem;
+      align-items: center;
+      font-weight: 600;
+      cursor: pointer
+    }
+
+    .check input {
+      width: 1.4rem;
+      height: 1.4rem;
+      accent-color: var(--pri2);
+      cursor: pointer
+    }
+
+    .check input:disabled {
+      cursor: not-allowed
     }
 
     .badge {
@@ -469,10 +519,11 @@
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
 
-    // Une demande = une carte
+    // Une demande = une carte, avec ses 4 éléments : 1 Récap · 2 Montant remboursé · 3 PDF créé (NDF) · 4 case « Traité »
     function carte(d) {
       const err = el('p', { class: 'err', role: 'alert' });
       const nomComplet = (d.first_name + ' ' + d.name).trim();
+      const montantOk = d.amount_cents != null;
 
       const lignes = el('table', { class: 'suivi' },
         el('thead', {}, el('tr', {}, el('th', {}, 'Nom'), el('th', { class: 'num' }, 'Quantité'), el('th', { class: 'num' }, 'Prix unitaire'), el('th', { class: 'num' }, 'Total'))),
@@ -484,64 +535,76 @@
         lienDrive(f.url) ? el('a', { href: f.url, target: '_blank', rel: 'noopener noreferrer' }, f.name) : f.name,
         ' ', el('small', {}, mo(f.size)))));
 
-      // Téléchargements
-      const bPdf = (texte, kind) => {
-        const b = el('button', { type: 'button', class: 'btn ghost small' }, texte);
+      // Boutons réutilisables
+      const bouton = (texte, classe, action) => {
+        const b = el('button', { type: 'button', class: 'btn ' + classe }, texte);
         b.onclick = async () => {
           b.disabled = true; err.textContent = '';
-          try { const r = await call({ action: 'admin_pdf', request_id: d.id, kind }); telecharger(r.name, r.data); }
+          try { await action(); }
           catch (x) { if (!x.handled) err.textContent = x.message; }
           finally { b.disabled = false; }
         };
         return b;
       };
-      const bRegen = (texte, kind) => {
-        const b = el('button', { type: 'button', class: 'btn ghost small' }, texte);
-        b.onclick = async () => {
-          b.disabled = true; err.textContent = '';
-          try { await call({ action: 'admin_regen', request_id: d.id, kind }); flash('Génération relancée pour ' + d.id + ' : patientez quelques instants puis cliquez sur « Actualiser ».'); }
-          catch (x) { if (!x.handled) err.textContent = x.message; }
-          finally { b.disabled = false; }
-        };
-        return b;
-      };
+      const bPdf = (texte, kind) => bouton(texte, 'ghost', async () => {
+        const r = await call({ action: 'admin_pdf', request_id: d.id, kind }); telecharger(r.name, r.data);
+      });
+      const bRegen = (kind) => bouton('Relancer la génération', 'ghost small', async () => {
+        await call({ action: 'admin_regen', request_id: d.id, kind });
+        flash('Génération relancée pour ' + d.id + ' : patientez quelques instants puis cliquez sur « Actualiser ».');
+      });
 
-      const actions = el('div', { class: 'actions' });
-      actions.append(d.has_recap ? bPdf('Télécharger le Récap (PDF)', 'recap')
-        : el('span', { class: 'mut' }, 'Récap en cours de génération… (« Actualiser » dans un instant)'));
-      if (!d.has_recap && !d.processed) actions.append(bRegen('Relancer le Récap', 'recap'));
-      if (d.processed) {
-        actions.append(d.has_ndf ? bPdf('Télécharger la NDF (PDF)', 'ndf')
-          : el('span', { class: 'mut' }, 'NDF en cours de génération…'));
-        if (!d.has_ndf) actions.append(bRegen('Relancer la NDF', 'ndf'));
-      }
+      // 1. Récap
+      const e1 = el('div', { class: 'step' + (d.has_recap ? ' done' : '') }, el('h3', {}, el('span', {}, '1'), 'Récap'));
+      if (d.has_recap) e1.append(bPdf('Voir le Récap (PDF)', 'recap'));
+      else e1.append(el('p', { class: 'mut' }, 'En cours de génération… (« Actualiser » dans un instant)'), bRegen('recap'));
 
-      // Saisie du montant remboursé (Amount_RMB)
-      const input = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Montant à rembourser en euros', value: saisie(d.amount_cents != null ? d.amount_cents : d.total_cents) });
-      const valider = el('button', { type: 'button', class: 'btn' }, d.processed ? 'Corriger le montant et régénérer la NDF' : 'Valider et générer la NDF');
-      valider.onclick = async () => {
-        err.textContent = '';
+      // 2. Montant remboursé (Amount_RMB) : enregistre le montant ET crée la NDF, sans verrouiller la demande
+      const input = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', id: 'amt-' + d.id, 'aria-label': 'Montant remboursé en euros', value: saisie(montantOk ? d.amount_cents : d.total_cents) });
+      if (d.processed) input.disabled = true;
+      const valider = bouton(montantOk ? 'Modifier le montant' : 'Valider le montant', '', async () => {
         const v = input.value.trim().replace(/\s/g, '').replace(',', '.');
-        if (!/^\d{1,7}(\.\d{1,2})?$/.test(v)) { err.textContent = 'Montant invalide (exemple : 42,50).'; return; }
+        if (!/^\d{1,7}(\.\d{1,2})?$/.test(v)) throw Error('Montant invalide (exemple : 42,50).');
         const c = Math.round(Number(v) * 100);
-        if (c <= 0) { err.textContent = 'Le montant remboursé doit être strictement positif.'; return; }
-        if (c > d.total_cents) { err.textContent = 'Le montant remboursé ne peut pas dépasser le total demandé (' + eur(d.total_cents) + ').'; return; }
-        if (!confirm('Rembourser ' + eur(c) + ' (sur ' + eur(d.total_cents) + ' demandés) à ' + nomComplet + ' ?\n\n' +
-          (d.processed ? 'La note de frais sera régénérée avec ce nouveau montant.' : 'La demande sera marquée comme traitée (le bénéficiaire ne pourra plus la modifier) et la note de frais sera générée.'))) return;
-        valider.disabled = true;
+        if (c <= 0) throw Error('Le montant remboursé doit être strictement positif.');
+        if (c > d.total_cents) throw Error('Le montant remboursé ne peut pas dépasser le total demandé (' + eur(d.total_cents) + ').');
+        const r = await call({ action: 'admin_amount', request_id: d.id, version: d.version, amount: v });
+        flash(r.unchanged ? 'Ce montant était déjà enregistré pour ' + d.id + '.'
+          : 'Montant de ' + eur(c) + ' enregistré pour ' + d.id + '. La note de frais est en cours de création : « Actualiser » dans un instant.');
+        await actualiser();
+      });
+      if (d.processed) valider.disabled = true, valider.onclick = null;
+      const e2 = el('div', { class: 'step' + (montantOk ? ' done' : '') }, el('h3', {}, el('span', {}, '2'), 'Montant remboursé (RMB)'), input, valider,
+        el('p', { class: 'mut' }, 'Total demandé : ' + eur(d.total_cents) + (d.processed ? ' — décochez « Traité » pour modifier.' : ' — modifiez si le remboursement est partiel.')));
+
+      // 3. PDF créé (NDF)
+      const e3 = el('div', { class: 'step' + (d.has_ndf ? ' done' : '') }, el('h3', {}, el('span', {}, '3'), 'PDF créé (NDF)'));
+      if (d.has_ndf) e3.append(bPdf('Voir la NDF (PDF)', 'ndf'));
+      else if (montantOk) e3.append(el('p', { class: 'mut' }, 'Création en cours… (« Actualiser » dans un instant)'), bRegen('ndf'));
+      else e3.append(el('p', { class: 'mut' }, 'Créé automatiquement dès que le montant est validé.'));
+
+      // 4. Case « Traité » : seule action qui verrouille la demande pour le bénéficiaire
+      const peut = d.processed || (montantOk && d.has_ndf);
+      const case_ = el('input', { type: 'checkbox', id: 'trt-' + d.id });
+      case_.checked = d.processed; case_.disabled = !peut;
+      case_.onchange = async () => {
+        const voulu = case_.checked; err.textContent = '';
+        const question = voulu
+          ? 'Marquer la demande de ' + nomComplet + ' comme TRAITÉE ?\n\nLe bénéficiaire ne pourra plus la modifier ni la supprimer, et verra le montant remboursé et sa note de frais.'
+          : 'Décocher « Traité » pour la demande de ' + nomComplet + ' ?\n\nLe bénéficiaire pourra de nouveau la modifier.';
+        if (!confirm(question)) { case_.checked = !voulu; return; }
+        case_.disabled = true;
         try {
-          const r = await call({ action: 'admin_process', request_id: d.id, version: d.version, amount: v });
-          flash(r.unchanged ? 'Ce montant était déjà enregistré pour ' + d.id + '.'
-            : 'Montant de ' + eur(c) + ' enregistré pour ' + d.id + '. La note de frais est en cours de génération (quelques instants) : retrouvez-la dans l’onglet « Traitées ».');
+          await call({ action: 'admin_processed', request_id: d.id, version: d.version, processed: voulu });
+          flash(voulu ? d.id + ' est marquée « Traité » : retrouvez-la dans l’onglet « Traitées ».' : d.id + ' est repassée dans « À traiter » : le bénéficiaire peut de nouveau la modifier.');
           await actualiser();
-        } catch (x) { if (!x.handled) err.textContent = x.message; }
-        finally { valider.disabled = false; }
+        } catch (x) { case_.checked = !voulu; case_.disabled = false; if (!x.handled) err.textContent = x.message; }
       };
-      const pay = el('div', { class: 'pay' },
-        el('label', { for: 'amt-' + d.id }, d.processed ? 'Montant remboursé (Amount_RMB)' : 'Montant à rembourser (€)'),
-        el('div', { class: 'line' }, input, valider),
-        el('p', { class: 'mut', style: 'margin:.4rem 0 0' }, 'Total demandé : ' + eur(d.total_cents) + (d.processed ? '' : ' — modifiez le montant si le remboursement est partiel.')));
-      input.id = 'amt-' + d.id;
+      const e4 = el('div', { class: 'step' + (d.processed ? ' done' : '') }, el('h3', {}, el('span', {}, '4'), 'Traité'),
+        el('label', { class: 'check', for: 'trt-' + d.id }, case_, 'Traité'),
+        el('p', { class: 'mut' }, d.processed ? 'Demande verrouillée pour le bénéficiaire.'
+          : peut ? 'Cochez pour verrouiller la demande : le bénéficiaire ne pourra plus la modifier.'
+            : 'Cochable une fois le montant validé et la NDF créée.'));
 
       return el('section', { class: 'card' },
         el('div', { class: 'req-head' }, el('h2', {}, nomComplet || '(sans nom)'), el('small', {}, d.id)),
@@ -551,11 +614,11 @@
           el('dt', {}, 'Téléphone'), el('dd', {}, champ(d.phone)),
           el('dt', {}, 'Statut'), el('dd', {}, el('span', { class: 'badge' + (d.processed ? ' ok' : '') }, champ(d.status))),
           el('dt', {}, 'Total demandé'), el('dd', {}, eur(d.total_cents)),
-          d.processed && d.amount_cents != null ? [el('dt', {}, 'Montant remboursé'), el('dd', {}, eur(d.amount_cents))] : null,
+          montantOk ? [el('dt', {}, 'Montant remboursé'), el('dd', {}, eur(d.amount_cents))] : null,
           d.processed && d.processed_at ? [el('dt', {}, 'Traitée le'), el('dd', {}, dateFr(d.processed_at))] : null),
         el('h3', {}, 'Détail des lignes'), el('div', { class: 'scroll' }, lignes),
         el('h3', {}, 'Justificatifs'), listeFichiers,
-        actions, pay, err);
+        el('div', { class: 'steps' }, e1, e2, e3, e4), err);
     }
 
     function flash(texte) {
