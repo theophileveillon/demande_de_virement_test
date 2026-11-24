@@ -114,6 +114,7 @@
 
     input[type=text],
     input[type=email],
+    input[type=tel],
     input[type=password],
     input[type=number] {
       width: 100%;
@@ -464,10 +465,14 @@
         <dl class="infos">
           <dt>N° de demande</dt>
           <dd id="vId"></dd>
+          <dt>Téléphone</dt>
+          <dd id="vTel"></dd>
           <dt>Statut</dt>
           <dd id="vStatut"></dd>
-          <dt>Montant total</dt>
+          <dt>Montant total demandé</dt>
           <dd id="vTotal"></dd>
+          <dt id="vRmbT" class="hidden">Montant remboursé</dt>
+          <dd id="vRmb" class="hidden"></dd>
         </dl>
         <h3>Détail des lignes</h3>
         <div class="scroll" id="vLignes"></div>
@@ -476,10 +481,11 @@
         <p class="err" id="vErr" role="alert"></p>
         <div class="actions">
           <button type="button" class="btn" id="vModif">Modifier ma demande</button>
-          <button type="button" class="btn ghost" id="vPdf">Télécharger le PDF</button>
+          <button type="button" class="btn ghost" id="vPdf">Télécharger le récapitulatif (PDF)</button>
+          <button type="button" class="btn ghost hidden" id="vNdf">Télécharger la note de frais (PDF)</button>
           <button type="button" class="btn ghost" id="vSuppr">Supprimer ma demande</button>
         </div>
-        <p class="mut hidden" id="vVerrou">Cette demande ne peut plus être modifiée.</p>
+        <p class="mut hidden" id="vVerrou">Cette demande a été traitée par la trésorerie : elle ne peut plus être modifiée.</p>
       </section>
 
       <!-- Écran 3 : formulaire NDF -->
@@ -493,6 +499,8 @@
         <input type="text" id="fNom" maxlength="80" autocomplete="family-name">
         <label class="f" for="fPrenom">Prénom</label>
         <input type="text" id="fPrenom" maxlength="80" autocomplete="given-name">
+        <label class="f" for="fTel">Téléphone</label>
+        <input type="tel" id="fTel" maxlength="25" autocomplete="tel" inputmode="tel" placeholder="06 12 34 56 78">
         <p class="err" id="idErr" role="alert"></p>
         <div id="zoneTableau"></div>
         <div id="zoneFichiers"></div>
@@ -679,6 +687,7 @@
     function montrerDemande() {
       const d = ctx.request, can = d.can || {};
       $('vId').textContent = d.id;
+      $('vTel').textContent = d.phone || '—';
       $('vStatut').textContent = d.status || 'En attente de traitement';
       $('vTotal').textContent = eur(d.total_cents != null ? d.total_cents : totalCentimes(d.table));
       $('vLignes').innerHTML = '';
@@ -702,6 +711,10 @@
       $('vSuppr').classList.toggle('hidden', !can.edit);
       $('vVerrou').classList.toggle('hidden', !!can.edit);
       $('vPdf').classList.toggle('hidden', !can.pdf);
+      $('vNdf').classList.toggle('hidden', !can.ndf);
+      const rmb = d.amount_rmb_cents != null;
+      $('vRmbT').classList.toggle('hidden', !rmb); $('vRmb').classList.toggle('hidden', !rmb);
+      if (rmb) $('vRmb').textContent = eur(d.amount_rmb_cents);
       $('vErr').textContent = '';
       ecran('view');
     }
@@ -713,6 +726,7 @@
       $('sendErr').textContent = ''; $('idErr').textContent = '';
       const u = (ctx && ctx.user) || {};
       $('fNom').value = d ? d.name : (u.name || ''); $('fPrenom').value = d ? d.first_name : (u.first_name || '');
+      $('fTel').value = d ? (d.phone || '') : ((ctx && ctx.last_phone) || '');
       if (d) { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); ribNDF.precharger(d.rib ? [d.rib] : []); }
       $('formTitre').textContent = d ? 'Modifier ma demande ' + d.id : 'Note de frais';
       $('banniere').textContent = 'Une fois envoyée, votre demande est mise à jour et le circuit de validation recommence.';
@@ -742,7 +756,7 @@
     function deconnecter() {
       creds = null; ctx = null; reqId = ''; modif = false; dejaEnvoyes.clear();
       tableauNDF.vider(); fichiersNDF.vider(); ribNDF.vider();
-      $('fNom').value = ''; $('fPrenom').value = '';
+      $('fNom').value = ''; $('fPrenom').value = ''; $('fTel').value = '';
       $('mail').value = ''; $('mdp').value = ''; $('loginErr').textContent = '';
       ecran('login');
     }
@@ -762,10 +776,14 @@
       catch (x) { $('vErr').textContent = x.message; }
       finally { b.disabled = false; }
     };
+    // Même règle que le serveur : chiffres, espaces, points, tirets, parenthèses ; « + » possible au début ; 8 à 15 chiffres
+    const telOk = t => /^\+?[0-9 .()\-]+$/.test(t) && t.length <= 25 && (t.match(/\d/g) || []).length >= 8 && (t.match(/\d/g) || []).length <= 15;
     const identiteOk = () => {
-      const ok = $('fNom').value.trim() && $('fPrenom').value.trim();
-      $('idErr').textContent = ok ? '' : 'Renseignez votre nom et votre prénom.';
-      return !!ok;
+      const tel = $('fTel').value.trim();
+      const ok = $('fNom').value.trim() && $('fPrenom').value.trim() && tel;
+      $('idErr').textContent = !ok ? 'Renseignez votre nom, votre prénom et votre numéro de téléphone.'
+        : !telOk(tel) ? 'Numéro de téléphone invalide (ex : 06 12 34 56 78 ou +33 6 12 34 56 78).' : '';
+      return !!ok && telOk(tel);
     };
 
     function telecharger(nom, base64) {
@@ -777,12 +795,14 @@
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
-    $('vPdf').onclick = async e => {
+    const telechargerPdf = kind => async e => {
       const b = e.currentTarget; b.disabled = true; $('vErr').textContent = '';
-      try { const r = await call({ action: 'pdf', request_id: ctx.request.id }); telecharger(r.name, r.data); }
+      try { const r = await call({ action: 'pdf', request_id: ctx.request.id, kind }); telecharger(r.name, r.data); }
       catch (x) { $('vErr').textContent = x.message; }
       finally { b.disabled = false; }
     };
+    $('vPdf').onclick = telechargerPdf('recap');
+    $('vNdf').onclick = telechargerPdf('ndf');
 
     /* ===== 7. ENVOI ===== */
     const dejaEnvoyes = new Map();   // File -> fileId : un nouvel essai ne renvoie pas les fichiers déjà partis
@@ -814,7 +834,7 @@
         for (let i = 0; i < aEnvoyer.length; i++) fileIds.push(await envoyer(aEnvoyer[i], 'justif', i));
         const ribId = await envoyer(rib, 'rib', aEnvoyer.length);
         progression('Enregistrement de la demande…', 92);
-        await call({ action: modif ? 'update' : 'submit', request_id: reqId, name: $('fNom').value.trim(), first_name: $('fPrenom').value.trim(), table: tableauNDF.valeur(), file_ids: fileIds, rib_id: ribId });
+        await call({ action: modif ? 'update' : 'submit', request_id: reqId, name: $('fNom').value.trim(), first_name: $('fPrenom').value.trim(), phone: $('fTel').value.trim(), table: tableauNDF.valeur(), file_ids: fileIds, rib_id: ribId });
         appliquerContexte(await call({ action: 'context' }));   // recharge la demande à jour
         dejaEnvoyes.clear(); reqId = ''; modif = false;
         ctx.request ? montrerDemande() : ouvrirFormulaire(null);

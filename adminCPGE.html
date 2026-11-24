@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Trésorerie – Remboursements CPGE – AEn7</title>
+  <style>
+    :root {
+      --pri: #A569BD;
+      --pri2: #6C3483;
+      --pri-lt: #F6F0F9;
+      --bd: #d9d9d9;
+      --txt: #222;
+      --mut: #666;
+      --err: #b3261e;
+      --ok: #1e7b34
+    }
+
+    * {
+      box-sizing: border-box;
+      border-radius: 0
+    }
+
+    body {
+      margin: 0;
+      color: var(--txt);
+      background: #fff;
+      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .hero {
+      text-align: center;
+      padding: 1.6rem 1rem 1.2rem;
+      border-bottom: 4px solid var(--pri)
+    }
+
+    .hero img {
+      height: 70px;
+      max-width: 80%;
+      object-fit: contain;
+      margin-bottom: .6rem
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 1.7rem;
+      font-weight: 600
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin: .5rem auto 0;
+      color: var(--mut)
+    }
+
+    main {
+      max-width: 940px;
+      margin: 1.5rem auto 2rem;
+      padding: 0 1rem
+    }
+
+    .card {
+      border: 1px solid var(--bd);
+      border-top: 3px solid var(--pri);
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1.2rem
+    }
+
+    .card h2 {
+      margin: 0 0 .4rem;
+      font-size: 1.25rem
+    }
+
+    .card h3 {
+      margin: 1.1rem 0 .3rem;
+      font-size: 1rem
+    }
+
+    .mut {
+      color: var(--mut);
+      font-size: .92rem;
+      margin: .2rem 0 .6rem
+    }
+
+    .err {
+      color: var(--err);
+      font-size: .9rem;
+      min-height: 1.1em;
+      margin: .3rem 0 0
+    }
+
+    .flash {
+      border: 1px solid var(--ok);
+      border-left-width: 4px;
+      background: #f1faf3;
+      padding: .6rem .9rem;
+      margin: 0 0 1rem
+    }
+
+    .btn {
+      display: inline-block;
+      border: 1px solid var(--pri);
+      padding: .5rem 1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--pri);
+      color: #fff
+    }
+
+    .btn.ghost {
+      background: #fff;
+      color: var(--pri2)
+    }
+
+    .btn:hover {
+      background: var(--pri2);
+      border-color: var(--pri2);
+      color: #fff
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: wait
+    }
+
+    .btn.small {
+      padding: .3rem .8rem;
+      font-size: .9rem
+    }
+
+    .bar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .5rem;
+      flex-wrap: wrap
+    }
+
+    .bar-top .row {
+      display: flex;
+      gap: .5rem
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin: .8rem 0 1rem;
+      border-bottom: 1px solid var(--bd)
+    }
+
+    .tab {
+      border: 1px solid var(--bd);
+      border-bottom: 0;
+      background: #fff;
+      padding: .55rem 1.1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--mut);
+      margin-right: -1px
+    }
+
+    .tab[aria-selected=true] {
+      background: var(--pri-lt);
+      color: var(--pri2);
+      border-top: 3px solid var(--pri);
+      margin-top: -2px
+    }
+
+    .actions {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: .8rem 0 0
+    }
+
+    .req-head {
+      display: flex;
+      justify-content: space-between;
+      gap: .6rem;
+      flex-wrap: wrap;
+      align-items: baseline
+    }
+
+    .req-head h2 {
+      margin: 0
+    }
+
+    .req-head small {
+      color: var(--mut);
+      font-family: ui-monospace, Menlo, Consolas, monospace
+    }
+
+    dl.infos {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: .2rem 1.2rem;
+      margin: .7rem 0
+    }
+
+    dl.infos dt {
+      color: var(--mut)
+    }
+
+    dl.infos dd {
+      margin: 0;
+      font-weight: 600;
+      overflow-wrap: anywhere
+    }
+
+    table.suivi {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .92rem
+    }
+
+    table.suivi th,
+    table.suivi td {
+      padding: .4rem .6rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd
+    }
+
+    table.suivi th {
+      color: var(--mut);
+      font-weight: 600
+    }
+
+    table.suivi .num {
+      text-align: right;
+      white-space: nowrap
+    }
+
+    .scroll {
+      overflow-x: auto
+    }
+
+    ul.files {
+      list-style: none;
+      padding: 0;
+      margin: .3rem 0 0
+    }
+
+    ul.files li {
+      padding: .2rem 0
+    }
+
+    ul.files small {
+      color: var(--mut)
+    }
+
+    a {
+      color: var(--pri2)
+    }
+
+    .pay {
+      background: var(--pri-lt);
+      border-left: 3px solid var(--pri);
+      padding: .8rem 1rem;
+      margin-top: 1rem
+    }
+
+    .pay label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: .25rem
+    }
+
+    .pay .line {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .pay input {
+      width: 9rem;
+      padding: .5rem .6rem;
+      border: 1px solid #bbb;
+      font: inherit;
+      text-align: right
+    }
+
+    .pay input:focus {
+      outline: 2px solid var(--pri);
+      border-color: var(--pri)
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0 .5rem;
+      border: 1px solid var(--pri);
+      color: var(--pri2);
+      font-size: .85rem;
+      font-weight: 600
+    }
+
+    .badge.ok {
+      border-color: var(--ok);
+      color: var(--ok)
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--mut);
+      padding: 2rem 1rem
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: .9rem;
+      color: var(--mut)
+    }
+  </style>
+</head>
+
+<body>
+  <header class="hero">
+    <img src="logo_AE.png" alt="Logo de l'AEn7" onerror="this.remove()">
+    <h1>Trésorerie – Remboursements CPGE</h1>
+    <p>Espace réservé à la trésorerie de l'AEn7.</p>
+  </header>
+
+  <main>
+    <!-- Connexion Google -->
+    <section class="card" id="login">
+      <h2>Connexion</h2>
+      <p class="mut">Connectez-vous avec le compte Google de la trésorerie.</p>
+      <div id="gbtn" style="min-height:44px"></div>
+      <p class="err" id="loginErr" role="alert"></p>
+    </section>
+
+    <div id="app" class="hidden">
+      <div class="bar-top">
+        <p class="mut" id="who"></p>
+        <div class="row">
+          <button type="button" class="btn ghost small" id="refresh">Actualiser</button>
+          <button type="button" class="btn ghost small" id="logout">Se déconnecter</button>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab" role="tab" id="tabPending" aria-selected="true">À traiter (<span id="nPending">0</span>)</button>
+        <button type="button" class="tab" role="tab" id="tabDone" aria-selected="false">Traitées (<span id="nDone">0</span>)</button>
+      </div>
+
+      <p class="flash hidden" id="flash" role="status"></p>
+      <p class="err" id="listErr" role="alert"></p>
+      <div id="list"></div>
+    </div>
+  </main>
+
+  <footer>AEn7 – trésorerie</footer>
+
+  <script>
+    /* ===== 1. RÉGLAGES ===== */
+    const API = 'https://script.google.com/macros/s/AKfycbw06mdL5LWaf2q-mwQIufA5VphV-vYkW8kgAOSV4Eri36pFMubS_Ur-d5cai_GTh6zflA/exec';
+    // ID client OAuth « Application Web » (Google Cloud Console) : le MÊME que cfg_admin.google_client_id dans Admin.gs
+    const GOOGLE_CLIENT_ID = 'VOTRE_CLIENT_ID.apps.googleusercontent.com';
+
+    /* ===== 2. OUTILS ===== */
+    const $ = id => document.getElementById(id);
+    // Les données des demandes viennent des utilisateurs : on n'insère JAMAIS de HTML, uniquement du texte (textContent)
+    const el = (tag, props = {}, ...kids) => {
+      const e = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) {
+        if (k === 'class') e.className = v; else if (k.startsWith('on')) e[k] = v; else e.setAttribute(k, v);
+      }
+      kids.flat().filter(x => x != null && x !== false).forEach(x => e.append(x instanceof Node ? x : document.createTextNode(String(x))));
+      return e;
+    };
+    const eur = c => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    const centimes = l => Math.round((+l.qte || 0) * Math.round((+l.pu || 0) * 100));
+    const dateFr = ms => ms ? new Date(ms).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+    const mo = n => n ? (n / 1048576).toFixed(1) + ' Mo' : '';
+    const champ = v => (v == null || v === '') ? '—' : v;
+    const saisie = c => (c / 100).toFixed(2).replace('.', ',');
+    // Seuls les liens Drive sont affichés comme liens
+    const lienDrive = u => /^https:\/\/drive\.google\.com\//.test(u || '');
+
+    /* ===== 3. SERVEUR ===== */
+    let idToken = null, onglet = 'pending';
+
+    async function call(payload) {
+      const stop = new AbortController(), minuteur = setTimeout(() => stop.abort(), 180000);
+      let j;
+      try {
+        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...payload, id_token: idToken }), signal: stop.signal });
+        j = await r.json();
+      } catch (_) { throw Error('Une erreur est survenue. Réessayez plus tard.'); }
+      finally { clearTimeout(minuteur); }
+      if (j.ok === false) {
+        const e = Error(j.error || 'Erreur serveur'); e.code = j.code;
+        if (j.code === 'AUTH' || j.code === 'FORBIDDEN') { deconnecter(j.error); e.handled = true; }   // session Google expirée ou compte refusé
+        throw e;
+      }
+      return j;
+    }
+
+    /* ===== 4. CONNEXION GOOGLE ===== */
+    function initGoogle() {
+      if (!(window.google && google.accounts && google.accounts.id)) { setTimeout(initGoogle, 300); return; }
+      if (/^VOTRE_/.test(GOOGLE_CLIENT_ID)) { $('loginErr').textContent = 'GOOGLE_CLIENT_ID n’est pas renseigné dans cette page.'; return; }
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: surConnexion, auto_select: false });
+      google.accounts.id.renderButton($('gbtn'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'fr' });
+    }
+
+    async function surConnexion(rep) {
+      $('loginErr').textContent = '';
+      idToken = rep.credential;
+      try { await charger(); ecran('app'); }
+      catch (x) { if (!x.handled) { idToken = null; $('loginErr').textContent = x.message; } }
+    }
+
+    function deconnecter(message) {
+      idToken = null;
+      if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+      $('list').replaceChildren(); $('flash').classList.add('hidden'); $('listErr').textContent = '';
+      $('loginErr').textContent = message || '';
+      ecran('login');
+    }
+    $('logout').onclick = () => deconnecter('');
+
+    function ecran(nom) {
+      $('login').classList.toggle('hidden', nom !== 'login');
+      $('app').classList.toggle('hidden', nom !== 'app');
+      window.scrollTo({ top: 0 });
+    }
+
+    /* ===== 5. LISTE ===== */
+    async function charger() {
+      $('listErr').textContent = '';
+      const r = await call({ action: 'admin_list', scope: onglet });
+      $('who').textContent = 'Connecté : ' + r.admin.mail;
+      $('nPending').textContent = r.pending_count; $('nDone').textContent = r.done_count;
+      $('tabPending').setAttribute('aria-selected', onglet === 'pending');
+      $('tabDone').setAttribute('aria-selected', onglet === 'done');
+      const liste = $('list'); liste.replaceChildren();
+      if (!r.items.length) {
+        liste.append(el('p', { class: 'empty' }, onglet === 'pending' ? 'Aucune demande à traiter. 🎉' : 'Aucune demande traitée pour le moment.'));
+        return;
+      }
+      r.items.forEach(d => liste.append(carte(d)));
+    }
+
+    async function actualiser() {
+      try { await charger(); } catch (x) { if (!x.handled) $('listErr').textContent = x.message; }
+    }
+    $('refresh').onclick = actualiser;
+    $('tabPending').onclick = () => { onglet = 'pending'; $('flash').classList.add('hidden'); actualiser(); };
+    $('tabDone').onclick = () => { onglet = 'done'; $('flash').classList.add('hidden'); actualiser(); };
+
+    function telecharger(nom, base64) {
+      const bin = atob(base64), octets = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) octets[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([octets], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = /\.pdf$/i.test(nom) ? nom : nom + '.pdf';
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    // Une demande = une carte
+    function carte(d) {
+      const err = el('p', { class: 'err', role: 'alert' });
+      const nomComplet = (d.first_name + ' ' + d.name).trim();
+
+      const lignes = el('table', { class: 'suivi' },
+        el('thead', {}, el('tr', {}, el('th', {}, 'Nom'), el('th', { class: 'num' }, 'Quantité'), el('th', { class: 'num' }, 'Prix unitaire'), el('th', { class: 'num' }, 'Total'))),
+        el('tbody', {}, d.table.map(l => el('tr', {},
+          el('td', {}, l.nom), el('td', { class: 'num' }, l.qte), el('td', { class: 'num' }, eur(Math.round(l.pu * 100))), el('td', { class: 'num' }, eur(centimes(l)))))));
+
+      const fichiers = [...(d.rib ? [{ ...d.rib, name: 'RIB : ' + d.rib.name }] : []), ...d.files];
+      const listeFichiers = el('ul', { class: 'files' }, fichiers.map(f => el('li', {},
+        lienDrive(f.url) ? el('a', { href: f.url, target: '_blank', rel: 'noopener noreferrer' }, f.name) : f.name,
+        ' ', el('small', {}, mo(f.size)))));
+
+      // Téléchargements
+      const bPdf = (texte, kind) => {
+        const b = el('button', { type: 'button', class: 'btn ghost small' }, texte);
+        b.onclick = async () => {
+          b.disabled = true; err.textContent = '';
+          try { const r = await call({ action: 'admin_pdf', request_id: d.id, kind }); telecharger(r.name, r.data); }
+          catch (x) { if (!x.handled) err.textContent = x.message; }
+          finally { b.disabled = false; }
+        };
+        return b;
+      };
+      const bRegen = (texte, kind) => {
+        const b = el('button', { type: 'button', class: 'btn ghost small' }, texte);
+        b.onclick = async () => {
+          b.disabled = true; err.textContent = '';
+          try { await call({ action: 'admin_regen', request_id: d.id, kind }); flash('Génération relancée pour ' + d.id + ' : patientez quelques instants puis cliquez sur « Actualiser ».'); }
+          catch (x) { if (!x.handled) err.textContent = x.message; }
+          finally { b.disabled = false; }
+        };
+        return b;
+      };
+
+      const actions = el('div', { class: 'actions' });
+      actions.append(d.has_recap ? bPdf('Télécharger le Récap (PDF)', 'recap')
+        : el('span', { class: 'mut' }, 'Récap en cours de génération… (« Actualiser » dans un instant)'));
+      if (!d.has_recap && !d.processed) actions.append(bRegen('Relancer le Récap', 'recap'));
+      if (d.processed) {
+        actions.append(d.has_ndf ? bPdf('Télécharger la NDF (PDF)', 'ndf')
+          : el('span', { class: 'mut' }, 'NDF en cours de génération…'));
+        if (!d.has_ndf) actions.append(bRegen('Relancer la NDF', 'ndf'));
+      }
+
+      // Saisie du montant remboursé (Amount_RMB)
+      const input = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Montant à rembourser en euros', value: saisie(d.amount_cents != null ? d.amount_cents : d.total_cents) });
+      const valider = el('button', { type: 'button', class: 'btn' }, d.processed ? 'Corriger le montant et régénérer la NDF' : 'Valider et générer la NDF');
+      valider.onclick = async () => {
+        err.textContent = '';
+        const v = input.value.trim().replace(/\s/g, '').replace(',', '.');
+        if (!/^\d{1,7}(\.\d{1,2})?$/.test(v)) { err.textContent = 'Montant invalide (exemple : 42,50).'; return; }
+        const c = Math.round(Number(v) * 100);
+        if (c <= 0) { err.textContent = 'Le montant remboursé doit être strictement positif.'; return; }
+        if (c > d.total_cents) { err.textContent = 'Le montant remboursé ne peut pas dépasser le total demandé (' + eur(d.total_cents) + ').'; return; }
+        if (!confirm('Rembourser ' + eur(c) + ' (sur ' + eur(d.total_cents) + ' demandés) à ' + nomComplet + ' ?\n\n' +
+          (d.processed ? 'La note de frais sera régénérée avec ce nouveau montant.' : 'La demande sera marquée comme traitée (le bénéficiaire ne pourra plus la modifier) et la note de frais sera générée.'))) return;
+        valider.disabled = true;
+        try {
+          const r = await call({ action: 'admin_process', request_id: d.id, version: d.version, amount: v });
+          flash(r.unchanged ? 'Ce montant était déjà enregistré pour ' + d.id + '.'
+            : 'Montant de ' + eur(c) + ' enregistré pour ' + d.id + '. La note de frais est en cours de génération (quelques instants) : retrouvez-la dans l’onglet « Traitées ».');
+          await actualiser();
+        } catch (x) { if (!x.handled) err.textContent = x.message; }
+        finally { valider.disabled = false; }
+      };
+      const pay = el('div', { class: 'pay' },
+        el('label', { for: 'amt-' + d.id }, d.processed ? 'Montant remboursé (Amount_RMB)' : 'Montant à rembourser (€)'),
+        el('div', { class: 'line' }, input, valider),
+        el('p', { class: 'mut', style: 'margin:.4rem 0 0' }, 'Total demandé : ' + eur(d.total_cents) + (d.processed ? '' : ' — modifiez le montant si le remboursement est partiel.')));
+      input.id = 'amt-' + d.id;
+
+      return el('section', { class: 'card' },
+        el('div', { class: 'req-head' }, el('h2', {}, nomComplet || '(sans nom)'), el('small', {}, d.id)),
+        el('dl', { class: 'infos' },
+          el('dt', {}, 'Demande faite le'), el('dd', {}, dateFr(d.date)),
+          el('dt', {}, 'E-mail'), el('dd', {}, champ(d.mail)),
+          el('dt', {}, 'Téléphone'), el('dd', {}, champ(d.phone)),
+          el('dt', {}, 'Statut'), el('dd', {}, el('span', { class: 'badge' + (d.processed ? ' ok' : '') }, champ(d.status))),
+          el('dt', {}, 'Total demandé'), el('dd', {}, eur(d.total_cents)),
+          d.processed && d.amount_cents != null ? [el('dt', {}, 'Montant remboursé'), el('dd', {}, eur(d.amount_cents))] : null,
+          d.processed && d.processed_at ? [el('dt', {}, 'Traitée le'), el('dd', {}, dateFr(d.processed_at))] : null),
+        el('h3', {}, 'Détail des lignes'), el('div', { class: 'scroll' }, lignes),
+        el('h3', {}, 'Justificatifs'), listeFichiers,
+        actions, pay, err);
+    }
+
+    function flash(texte) {
+      $('flash').textContent = texte; $('flash').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.addEventListener('load', initGoogle);
+  </script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+
+</html>
