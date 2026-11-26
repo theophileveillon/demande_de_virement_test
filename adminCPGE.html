@@ -261,87 +261,37 @@
       color: var(--pri2)
     }
 
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: .8rem;
-      margin-top: 1.1rem
+    .pay {
+      background: var(--pri-lt);
+      border-left: 3px solid var(--pri);
+      padding: .8rem 1rem;
+      margin-top: 1rem
     }
 
-    .step {
-      border: 1px solid var(--bd);
-      border-top: 3px solid var(--pri);
-      padding: .7rem .8rem;
+    .pay label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: .25rem
+    }
+
+    .pay .line {
       display: flex;
-      flex-direction: column;
-      gap: .45rem
+      gap: .6rem;
+      flex-wrap: wrap;
+      align-items: center
     }
 
-    .step.done {
-      border-top-color: var(--ok)
-    }
-
-    .step h3 {
-      margin: 0;
-      font-size: .95rem
-    }
-
-    .step h3 span {
-      display: inline-block;
-      width: 1.5rem;
-      height: 1.5rem;
-      line-height: 1.5rem;
-      text-align: center;
-      background: var(--pri);
-      color: #fff;
-      margin-right: .3rem;
-      font-size: .85rem
-    }
-
-    .step .btn {
-      width: 100%
-    }
-
-    .step input[type=text] {
-      width: 100%;
+    .pay input {
+      width: 9rem;
       padding: .5rem .6rem;
       border: 1px solid #bbb;
       font: inherit;
       text-align: right
     }
 
-    .step input[type=text]:focus {
+    .pay input:focus {
       outline: 2px solid var(--pri);
       border-color: var(--pri)
-    }
-
-    .step input[type=text]:disabled {
-      background: #f3f3f3;
-      color: var(--mut)
-    }
-
-    .step .mut {
-      margin: 0;
-      font-size: .85rem
-    }
-
-    .check {
-      display: flex;
-      gap: .6rem;
-      align-items: center;
-      font-weight: 600;
-      cursor: pointer
-    }
-
-    .check input {
-      width: 1.4rem;
-      height: 1.4rem;
-      accent-color: var(--pri2);
-      cursor: pointer
-    }
-
-    .check input:disabled {
-      cursor: not-allowed
     }
 
     .badge {
@@ -369,6 +319,22 @@
       padding: 1rem;
       font-size: .9rem;
       color: var(--mut)
+    }
+
+    .pay input[type=checkbox] {
+      width: auto;
+      padding: 0;
+      margin-right: .5rem
+    }
+
+    .pay h3 {
+      margin-top: 0
+    }
+
+    .pay label.chk {
+      display: flex;
+      align-items: center;
+      font-weight: 600
     }
   </style>
 </head>
@@ -415,7 +381,7 @@
     /* ===== 1. RÉGLAGES ===== */
     const API = 'https://script.google.com/macros/s/AKfycbw06mdL5LWaf2q-mwQIufA5VphV-vYkW8kgAOSV4Eri36pFMubS_Ur-d5cai_GTh6zflA/exec';
     // ID client OAuth « Application Web » (Google Cloud Console) : le MÊME que cfg_admin.google_client_id dans Admin.gs
-    const GOOGLE_CLIENT_ID = '5104625126-253et5ckn99iueah9g5aqjpjj6ial3jn.apps.googleusercontent.com';
+    const GOOGLE_CLIENT_ID = 'VOTRE_CLIENT_ID.apps.googleusercontent.com';
 
     /* ===== 2. OUTILS ===== */
     const $ = id => document.getElementById(id);
@@ -519,92 +485,127 @@
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
 
-    // Une demande = une carte, avec ses 4 éléments : 1 Récap · 2 Montant remboursé · 3 PDF créé (NDF) · 4 case « Traité »
+    // Étape d'avancement, déduite du montant, de la NDF, de la NDF signée et de la case « Traité »
+    function etat(d) {
+      if (d.processed) return { txt: 'Traitée', ok: true };
+      if (d.amount_cents == null) return { txt: 'Montant à saisir', ok: false };
+      if (!d.has_ndf) return { txt: 'NDF en cours de génération', ok: false };
+      if (!d.has_signed) return { txt: 'En attente de la NDF signée du bénéficiaire', ok: false };
+      return { txt: 'NDF signée reçue : à vérifier', ok: false };
+    }
+
+    // Une demande = une carte : la fiche tient lieu de récapitulatif
     function carte(d) {
       const err = el('p', { class: 'err', role: 'alert' });
       const nomComplet = (d.first_name + ' ' + d.name).trim();
-      const montantOk = d.amount_cents != null;
+      const e = etat(d);
 
       const lignes = el('table', { class: 'suivi' },
         el('thead', {}, el('tr', {}, el('th', {}, 'Nom'), el('th', { class: 'num' }, 'Quantité'), el('th', { class: 'num' }, 'Prix unitaire'), el('th', { class: 'num' }, 'Total'))),
         el('tbody', {}, d.table.map(l => el('tr', {},
           el('td', {}, l.nom), el('td', { class: 'num' }, l.qte), el('td', { class: 'num' }, eur(Math.round(l.pu * 100))), el('td', { class: 'num' }, eur(centimes(l)))))));
 
-      const fichiers = [...(d.rib ? [{ ...d.rib, name: 'RIB : ' + d.rib.name }] : []), ...d.files];
-      const listeFichiers = el('ul', { class: 'files' }, fichiers.map(f => el('li', {},
-        lienDrive(f.url) ? el('a', { href: f.url, target: '_blank', rel: 'noopener noreferrer' }, f.name) : f.name,
-        ' ', el('small', {}, mo(f.size)))));
+      const fichiers = [
+        ...(d.presence ? [{ ...d.presence, name: 'Présence au forum : ' + d.presence.name }] : []),
+        ...(d.rib ? [{ ...d.rib, name: 'RIB : ' + d.rib.name }] : []),
+        ...d.files];
+      const listeFichiers = el('ul', { class: 'files' },
+        d.presence ? null : el('li', { class: 'mut' }, 'Justificatif de présence au forum : non fourni (demande antérieure à cette pièce)'),
+        fichiers.map(f => el('li', {},
+          lienDrive(f.url) ? el('a', { href: f.url, target: '_blank', rel: 'noopener noreferrer' }, f.name) : f.name,
+          ' ', el('small', {}, mo(f.size)))));
 
-      // Boutons réutilisables
-      const bouton = (texte, classe, action) => {
-        const b = el('button', { type: 'button', class: 'btn ' + classe }, texte);
+      const bPdf = (texte, kind) => {
+        const b = el('button', { type: 'button', class: 'btn ghost small' }, texte);
         b.onclick = async () => {
           b.disabled = true; err.textContent = '';
-          try { await action(); }
+          try { const r = await call({ action: 'admin_pdf', request_id: d.id, kind }); telecharger(r.name, r.data); }
           catch (x) { if (!x.handled) err.textContent = x.message; }
           finally { b.disabled = false; }
         };
         return b;
       };
-      const bPdf = (texte, kind) => bouton(texte, 'ghost', async () => {
-        const r = await call({ action: 'admin_pdf', request_id: d.id, kind }); telecharger(r.name, r.data);
-      });
-      const bRegen = (kind) => bouton('Relancer la génération', 'ghost small', async () => {
-        await call({ action: 'admin_regen', request_id: d.id, kind });
-        flash('Génération relancée pour ' + d.id + ' : patientez quelques instants puis cliquez sur « Actualiser ».');
-      });
-
-      // 1. Récap
-      const e1 = el('div', { class: 'step' + (d.has_recap ? ' done' : '') }, el('h3', {}, el('span', {}, '1'), 'Récap'));
-      if (d.has_recap) e1.append(bPdf('Voir le Récap (PDF)', 'recap'));
-      else e1.append(el('p', { class: 'mut' }, 'En cours de génération… (« Actualiser » dans un instant)'), bRegen('recap'));
-
-      // 2. Montant remboursé (Amount_RMB) : enregistre le montant ET crée la NDF, sans verrouiller la demande
-      const input = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', id: 'amt-' + d.id, 'aria-label': 'Montant remboursé en euros', value: saisie(montantOk ? d.amount_cents : d.total_cents) });
-      if (d.processed) input.disabled = true;
-      const valider = bouton(montantOk ? 'Modifier le montant' : 'Valider le montant', '', async () => {
-        const v = input.value.trim().replace(/\s/g, '').replace(',', '.');
-        if (!/^\d{1,7}(\.\d{1,2})?$/.test(v)) throw Error('Montant invalide (exemple : 42,50).');
-        const c = Math.round(Number(v) * 100);
-        if (c <= 0) throw Error('Le montant remboursé doit être strictement positif.');
-        if (c > d.total_cents) throw Error('Le montant remboursé ne peut pas dépasser le total demandé (' + eur(d.total_cents) + ').');
-        const r = await call({ action: 'admin_amount', request_id: d.id, version: d.version, amount: v });
-        flash(r.unchanged ? 'Ce montant était déjà enregistré pour ' + d.id + '.'
-          : 'Montant de ' + eur(c) + ' enregistré pour ' + d.id + '. La note de frais est en cours de création : « Actualiser » dans un instant.');
-        await actualiser();
-      });
-      if (d.processed) valider.disabled = true, valider.onclick = null;
-      const e2 = el('div', { class: 'step' + (montantOk ? ' done' : '') }, el('h3', {}, el('span', {}, '2'), 'Montant remboursé (RMB)'), input, valider,
-        el('p', { class: 'mut' }, 'Total demandé : ' + eur(d.total_cents) + (d.processed ? ' — décochez « Traité » pour modifier.' : ' — modifiez si le remboursement est partiel.')));
-
-      // 3. PDF créé (NDF)
-      const e3 = el('div', { class: 'step' + (d.has_ndf ? ' done' : '') }, el('h3', {}, el('span', {}, '3'), 'PDF créé (NDF)'));
-      if (d.has_ndf) e3.append(bPdf('Voir la NDF (PDF)', 'ndf'));
-      else if (montantOk) e3.append(el('p', { class: 'mut' }, 'Création en cours… (« Actualiser » dans un instant)'), bRegen('ndf'));
-      else e3.append(el('p', { class: 'mut' }, 'Créé automatiquement dès que le montant est validé.'));
-
-      // 4. Case « Traité » : seule action qui verrouille la demande pour le bénéficiaire
-      const peut = d.processed || (montantOk && d.has_ndf);
-      const case_ = el('input', { type: 'checkbox', id: 'trt-' + d.id });
-      case_.checked = d.processed; case_.disabled = !peut;
-      case_.onchange = async () => {
-        const voulu = case_.checked; err.textContent = '';
-        const question = voulu
-          ? 'Marquer la demande de ' + nomComplet + ' comme TRAITÉE ?\n\nLe bénéficiaire ne pourra plus la modifier ni la supprimer, et verra le montant remboursé et sa note de frais.'
-          : 'Décocher « Traité » pour la demande de ' + nomComplet + ' ?\n\nLe bénéficiaire pourra de nouveau la modifier.';
-        if (!confirm(question)) { case_.checked = !voulu; return; }
-        case_.disabled = true;
-        try {
-          await call({ action: 'admin_processed', request_id: d.id, version: d.version, processed: voulu });
-          flash(voulu ? d.id + ' est marquée « Traité » : retrouvez-la dans l’onglet « Traitées ».' : d.id + ' est repassée dans « À traiter » : le bénéficiaire peut de nouveau la modifier.');
-          await actualiser();
-        } catch (x) { case_.checked = !voulu; case_.disabled = false; if (!x.handled) err.textContent = x.message; }
+      const bRegen = () => {
+        const b = el('button', { type: 'button', class: 'btn ghost small' }, 'Relancer la NDF');
+        b.onclick = async () => {
+          b.disabled = true; err.textContent = '';
+          try { await call({ action: 'admin_regen', request_id: d.id }); flash('Génération relancée pour ' + d.id + ' : patientez quelques instants puis cliquez sur « Actualiser ».'); }
+          catch (x) { if (!x.handled) err.textContent = x.message; }
+          finally { b.disabled = false; }
+        };
+        return b;
       };
-      const e4 = el('div', { class: 'step' + (d.processed ? ' done' : '') }, el('h3', {}, el('span', {}, '4'), 'Traité'),
-        el('label', { class: 'check', for: 'trt-' + d.id }, case_, 'Traité'),
-        el('p', { class: 'mut' }, d.processed ? 'Demande verrouillée pour le bénéficiaire.'
-          : peut ? 'Cochez pour verrouiller la demande : le bénéficiaire ne pourra plus la modifier.'
-            : 'Cochable une fois le montant validé et la NDF créée.'));
+
+      // Étape 1 : montant remboursé (Amount_RMB) -> lance la NDF
+      const input = el('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Montant à rembourser en euros', value: saisie(d.amount_cents != null ? d.amount_cents : d.total_cents) });
+      const valider = el('button', { type: 'button', class: 'btn' }, d.amount_cents != null ? 'Corriger le montant et régénérer la NDF' : 'Valider et générer la NDF');
+      if (d.processed) { input.disabled = true; valider.disabled = true; }
+      valider.onclick = async () => {
+        err.textContent = '';
+        const v = input.value.trim().replace(/\s/g, '').replace(',', '.');
+        if (!/^\d{1,7}(\.\d{1,2})?$/.test(v)) { err.textContent = 'Montant invalide (exemple : 42,50).'; return; }
+        const c = Math.round(Number(v) * 100);
+        if (c <= 0) { err.textContent = 'Le montant remboursé doit être strictement positif.'; return; }
+        if (c > d.total_cents) { err.textContent = 'Le montant remboursé ne peut pas dépasser le total demandé (' + eur(d.total_cents) + ').'; return; }
+        const change = d.amount_cents != null && c !== d.amount_cents;
+        if (!confirm('Rembourser ' + eur(c) + ' (sur ' + eur(d.total_cents) + ' demandés) à ' + nomComplet + ' ?\n\n' +
+          'La note de frais va être générée puis envoyée par e-mail au bénéficiaire pour vérification et signature.' +
+          (change ? (d.has_signed ? '\n\nAttention : la NDF actuelle et la NDF signée déjà reçue seront supprimées ; le bénéficiaire devra signer de nouveau.' : '\n\nLa NDF actuelle sera remplacée.') : ''))) return;
+        valider.disabled = true;
+        try {
+          const r = await call({ action: 'admin_amount', request_id: d.id, version: d.version, amount: v });
+          flash(r.unchanged ? 'Ce montant était déjà enregistré pour ' + d.id + '.'
+            : 'Montant de ' + eur(c) + ' enregistré pour ' + d.id + '. La note de frais est en cours de génération puis sera envoyée au bénéficiaire : cliquez sur « Actualiser » dans un instant.');
+          await actualiser();
+        } catch (x) { if (!x.handled) err.textContent = x.message; }
+        finally { valider.disabled = false; }
+      };
+      input.id = 'amt-' + d.id;
+      const etape1 = el('div', { class: 'pay' },
+        el('h3', {}, '1. Montant remboursé (Amount_RMB)'),
+        el('label', { for: 'amt-' + d.id }, 'Montant à rembourser (€)'),
+        el('div', { class: 'line' }, input, valider),
+        el('p', { class: 'mut', style: 'margin:.4rem 0 0' }, 'Total demandé : ' + eur(d.total_cents) +
+          (d.processed ? ' — décochez « Traité » (étape 4) pour modifier le montant.' : ' — modifiez le montant si le remboursement est partiel.')));
+
+      // Étapes 2 et 3 : NDF puis NDF signée
+      const ndf = el('div', { class: 'actions' });
+      if (d.has_ndf) ndf.append(bPdf('Télécharger la NDF (PDF)', 'ndf'));
+      else if (d.amount_cents != null) { ndf.append(el('span', { class: 'mut' }, 'NDF en cours de génération… (« Actualiser » dans un instant)')); if (!d.processed) ndf.append(bRegen()); }
+      else ndf.append(el('span', { class: 'mut' }, 'Disponible après validation du montant.'));
+      const etape2 = el('div', { class: 'pay' },
+        el('h3', {}, '2. Note de frais'),
+        el('p', { class: 'mut', style: 'margin:0' }, 'Envoyée par e-mail au bénéficiaire dès sa génération.'), ndf);
+
+      const sign = el('div', { class: 'actions' });
+      if (d.has_signed) sign.append(bPdf('Télécharger la NDF signée (PDF)', 'ndf_signed'));
+      const etape3 = el('div', { class: 'pay' },
+        el('h3', {}, '3. Note de frais signée'),
+        el('p', { class: 'mut', style: 'margin:0' }, d.has_signed ? 'Reçue le ' + dateFr(d.signed_at) + '. Vérifiez-la avant de cocher « Traité ».'
+          : d.has_ndf ? 'En attente : le bénéficiaire doit vérifier, dater, signer puis déposer la NDF sur la page. Le mail de 18h vous prévient.' : 'Disponible une fois la NDF générée et signée.'), sign);
+
+      // Étape 4 : case « Traité » (seule action qui verrouille la demande)
+      const chk = el('input', { type: 'checkbox', id: 'trt-' + d.id });
+      chk.checked = d.processed;
+      const dispo = () => !chk.checked && !d.has_signed;
+      chk.disabled = dispo();
+      chk.onchange = async () => {
+        const veut = chk.checked; err.textContent = '';
+        if (!confirm(veut ? 'Marquer la demande de ' + nomComplet + ' comme traitée ?\n\nLe bénéficiaire ne pourra plus la modifier ni la supprimer.'
+          : 'Décocher « Traité » ?\n\nLe bénéficiaire pourra de nouveau modifier sa demande.')) { chk.checked = !veut; return; }
+        chk.disabled = true;
+        try {
+          await call({ action: 'admin_processed', request_id: d.id, version: d.version, processed: veut });
+          flash(veut ? d.id + ' : demande traitée et verrouillée.' : d.id + ' : « Traité » décoché, la demande est de nouveau modifiable.');
+          await actualiser();
+        } catch (x) { chk.checked = !veut; if (!x.handled) err.textContent = x.message; }
+        finally { chk.disabled = dispo(); }
+      };
+      const etape4 = el('div', { class: 'pay' },
+        el('h3', {}, '4. Traitement'),
+        el('label', { class: 'chk', for: 'trt-' + d.id }, chk, 'Traité'),
+        el('p', { class: 'mut', style: 'margin:.4rem 0 0' }, d.processed ? 'Demande verrouillée pour le bénéficiaire. Décochez pour la rouvrir.'
+          : 'Cochable une fois la NDF signée reçue et vérifiée. Verrouille la demande pour le bénéficiaire.'));
 
       return el('section', { class: 'card' },
         el('div', { class: 'req-head' }, el('h2', {}, nomComplet || '(sans nom)'), el('small', {}, d.id)),
@@ -612,13 +613,14 @@
           el('dt', {}, 'Demande faite le'), el('dd', {}, dateFr(d.date)),
           el('dt', {}, 'E-mail'), el('dd', {}, champ(d.mail)),
           el('dt', {}, 'Téléphone'), el('dd', {}, champ(d.phone)),
-          el('dt', {}, 'Statut'), el('dd', {}, el('span', { class: 'badge' + (d.processed ? ' ok' : '') }, champ(d.status))),
+          el('dt', {}, 'Avancement'), el('dd', {}, el('span', { class: 'badge' + (e.ok ? ' ok' : '') }, e.txt)),
           el('dt', {}, 'Total demandé'), el('dd', {}, eur(d.total_cents)),
-          montantOk ? [el('dt', {}, 'Montant remboursé'), el('dd', {}, eur(d.amount_cents))] : null,
+          d.amount_cents != null ? [el('dt', {}, 'Montant remboursé'), el('dd', {}, eur(d.amount_cents))] : null,
+          d.has_signed ? [el('dt', {}, 'NDF signée reçue le'), el('dd', {}, dateFr(d.signed_at))] : null,
           d.processed && d.processed_at ? [el('dt', {}, 'Traitée le'), el('dd', {}, dateFr(d.processed_at))] : null),
         el('h3', {}, 'Détail des lignes'), el('div', { class: 'scroll' }, lignes),
-        el('h3', {}, 'Justificatifs'), listeFichiers,
-        el('div', { class: 'steps' }, e1, e2, e3, e4), err);
+        el('h3', {}, 'Pièces fournies'), listeFichiers,
+        etape1, etape2, etape3, etape4, err);
     }
 
     function flash(texte) {

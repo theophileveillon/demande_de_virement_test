@@ -428,6 +428,11 @@
     footer a {
       color: var(--pri2)
     }
+
+    label.btn.off {
+      opacity: .5;
+      cursor: not-allowed
+    }
   </style>
 </head>
 
@@ -481,16 +486,23 @@
         <p class="err" id="vErr" role="alert"></p>
         <div class="actions">
           <button type="button" class="btn" id="vModif">Modifier ma demande</button>
-          <button type="button" class="btn ghost" id="vPdf">Télécharger le récapitulatif (PDF)</button>
           <button type="button" class="btn ghost hidden" id="vNdf">Télécharger la note de frais (PDF)</button>
           <button type="button" class="btn ghost" id="vSuppr">Supprimer ma demande</button>
         </div>
-        <p class="mut hidden" id="vVerrou">Cette demande a été traitée par la trésorerie : elle ne peut plus être modifiée.</p>
+        <p class="mut hidden" id="vVerrou">Cette demande a été traitée par la trésorerie : elle ne peut plus être
+          modifiée.</p>
+        <p class="mut hidden" id="vAttente">Votre demande a bien été reçue. Dès que la trésorerie aura validé le montant
+          remboursé, vous recevrez par e-mail votre note de frais à vérifier, dater, signer puis déposer ici. Vous
+          pouvez modifier ou supprimer votre demande tant qu’elle n’est pas traitée.</p>
         <div class="note hidden" id="vSign">
           <h3 style="margin-top:0">Signature de la note de frais</h3>
           <p class="mut" id="vSignTxt"></p>
+          <label class="f" style="display:flex;gap:.5rem;align-items:flex-start;font-weight:400"><input type="checkbox"
+              id="vSignOk" style="margin-top:.35rem"><span>Je certifie avoir vérifié toutes les informations de la note
+              de frais, l’avoir datée et signée.</span></label>
           <div class="actions">
-            <label class="btn">Envoyer la note de frais signée (PDF)<input type="file" class="sr" id="vSignFile" accept=".pdf,application/pdf"></label>
+            <label class="btn off" id="vSignLbl">Déposer la note de frais signée (PDF)<input type="file" class="sr"
+                id="vSignFile" accept=".pdf,application/pdf" disabled></label>
             <button type="button" class="btn ghost hidden" id="vSigned">Télécharger ma note de frais signée</button>
           </div>
         </div>
@@ -513,6 +525,7 @@
         <div id="zoneTableau"></div>
         <div id="zoneFichiers"></div>
         <div id="zoneRib"></div>
+        <div id="zonePres"></div>
         <p class="err" id="sendErr" role="alert"></p>
         <button type="button" class="btn big" id="send">Envoyer ma demande</button>
         <p><button type="button" class="btn ghost big hidden" id="cancelForm" style="margin-top:.6rem">Annuler et
@@ -621,14 +634,14 @@
     }
 
     // Dépôt de fichiers : justificatifs (plusieurs) ou RIB (un seul PDF, remplacé à chaque ajout)
-    function fichiers({ titre, aide, unique = false, ext = null }) {
+    function fichiers({ titre, aide, unique = false, ext = null, bouton = '', manque = '', refus = '' }) {
       let liste = [], avis = '';
       const el = html(`<div><h3></h3><p class="mut"></p>
     <label class="btn ghost"><input type="file" class="sr"></label>
     <ul class="files"></ul><p class="err" role="alert"></p></div>`);
       ecrireLabel(el.querySelector('h3'), titre, true);
       el.querySelector('.mut').textContent = aide;
-      el.querySelector('label').prepend(unique ? 'Choisir le RIB (PDF)' : 'Ajouter des fichiers');
+      el.querySelector('label').prepend(bouton || (unique ? 'Choisir un fichier (PDF)' : 'Ajouter des fichiers'));
       const input = el.querySelector('input'), ul = el.querySelector('ul'), msg = el.querySelector('.err');
       const autorises = () => ext || EXT_OK;
       input.multiple = !unique;
@@ -645,7 +658,7 @@
         });
       }
       const probleme = f =>
-        !autorises().includes(extension(f.name)) ? `« ${f.name} » : format refusé. ${unique ? 'Le RIB doit être un PDF.' : 'Téléversez un PDF ou une image.'}` :
+        !autorises().includes(extension(f.name)) ? `« ${f.name} » : format refusé. ${unique ? (refus || 'Le fichier doit être un PDF.') : 'Téléversez un PDF ou une image.'}` :
           !f.size ? `« ${f.name} » est vide.` :
             f.size > MAX_BYTES ? `« ${f.name} » dépasse ${MAX_BYTES / 1048576} Mo.` : '';
 
@@ -661,17 +674,19 @@
         }
         avis = refus.join(' '); e.target.value = ''; dessiner(); valider();
       };
-      function valider() { msg.textContent = avis || (liste.length ? '' : unique ? 'Ajoutez votre RIB (PDF).' : 'Ajoutez au moins un justificatif (photo, PDF…).'); return !msg.textContent; }
+      function valider() { msg.textContent = avis || (liste.length ? '' : unique ? (manque || 'Ajoutez un fichier PDF.') : 'Ajoutez au moins un justificatif (photo, PDF…).'); return !msg.textContent; }
       const precharger = items => { liste = (items || []).map(f => ({ name: f.name, size: f.size || 0, fileId: f.id })); avis = ''; dessiner(); };
       return { el, valider, precharger, valeur: () => liste, vider: () => { liste = []; avis = ''; dessiner(); msg.textContent = ''; } };
     }
 
     const tableauNDF = tableau();
     const fichiersNDF = fichiers({ titre: 'Justificatifs', aide: 'Photos ou PDF uniquement (JPEG, PNG, HEIC, PDF) : 10 fichiers maximum, 10 Mo chacun.' });
-    const ribNDF = fichiers({ titre: 'RIB', aide: 'Un seul fichier PDF (10 Mo maximum).', unique: true, ext: ['pdf'] });
+    const ribNDF = fichiers({ titre: 'RIB', aide: 'Un seul fichier PDF (10 Mo maximum).', unique: true, ext: ['pdf'], bouton: 'Choisir le RIB (PDF)', manque: 'Ajoutez votre RIB (PDF).', refus: 'Le RIB doit être un PDF.' });
+    const presenceNDF = fichiers({ titre: 'Justificatif de présence au forum CPGE', aide: 'Un seul fichier PDF (10 Mo maximum) prouvant votre présence au forum.', unique: true, ext: ['pdf'], bouton: 'Choisir le justificatif (PDF)', manque: 'Ajoutez votre justificatif de présence au forum (PDF).', refus: 'Le justificatif de présence doit être un PDF.' });
     $('zoneTableau').append(tableauNDF.el);
     $('zoneFichiers').append(fichiersNDF.el);
     $('zoneRib').append(ribNDF.el);
+    $('zonePres').append(presenceNDF.el);
 
     /* ===== 4. ÉCRANS ===== */
     function ecran(nom) {                        // 'login' | 'view' | 'form'
@@ -709,7 +724,7 @@
       });
       $('vLignes').append(t);
       $('vFichiers').innerHTML = '';
-      [...(d.rib ? [{ ...d.rib, name: 'RIB : ' + d.rib.name }] : []), ...(d.files || [])].forEach(f => {
+      [...(d.rib ? [{ ...d.rib, name: 'RIB : ' + d.rib.name }] : []), ...(d.presence ? [{ ...d.presence, name: 'Présence au forum : ' + d.presence.name }] : []), ...(d.files || [])].forEach(f => {
         const li = html('<li><span></span><small></small></li>');
         li.querySelector('span').textContent = f.name;
         li.querySelector('small').textContent = f.size ? (f.size / 1048576).toFixed(1) + ' Mo' : '';
@@ -718,13 +733,14 @@
       $('vModif').classList.toggle('hidden', !can.edit);
       $('vSuppr').classList.toggle('hidden', !can.edit);
       $('vVerrou').classList.toggle('hidden', !!can.edit);
-      $('vPdf').classList.toggle('hidden', !can.pdf);
       $('vNdf').classList.toggle('hidden', !can.ndf);
       $('vSign').classList.toggle('hidden', !can.sign);
       $('vSigned').classList.toggle('hidden', !can.signed);
+      $('vAttente').classList.toggle('hidden', !(can.edit && !can.ndf));
       $('vSignTxt').textContent = can.signed
         ? 'Votre note de frais signée a bien été reçue. Tant que la trésorerie ne l’a pas traitée, vous pouvez en envoyer une autre pour la remplacer.'
-        : 'Téléchargez la note de frais (vous l’avez aussi reçue par e-mail), signez-la dans le cadre « Signature du bénéficiaire », puis déposez ici le PDF signé. Si vous modifiez votre demande, la note de frais sera refaite et à signer de nouveau.';
+        : 'Téléchargez la note de frais (vous l’avez aussi reçue par e-mail) et vérifiez toutes les informations. Datez-la et signez-la dans le cadre « Signature du bénéficiaire », puis déposez ici le PDF signé. Si vous modifiez votre demande, la note de frais sera refaite et à signer de nouveau.';
+      $('vSignOk').checked = false; majCaseSignature();
       const rmb = d.amount_rmb_cents != null;
       $('vRmbT').classList.toggle('hidden', !rmb); $('vRmb').classList.toggle('hidden', !rmb);
       if (rmb) $('vRmb').textContent = eur(d.amount_rmb_cents);
@@ -735,12 +751,12 @@
     function ouvrirFormulaire(d) {
       modif = !!d; reqId = d ? d.id : '';
       dejaEnvoyes.clear();
-      tableauNDF.vider(); fichiersNDF.vider(); ribNDF.vider();
+      tableauNDF.vider(); fichiersNDF.vider(); ribNDF.vider(); presenceNDF.vider();
       $('sendErr').textContent = ''; $('idErr').textContent = '';
       const u = (ctx && ctx.user) || {};
       $('fNom').value = d ? d.name : (u.name || ''); $('fPrenom').value = d ? d.first_name : (u.first_name || '');
       $('fTel').value = d ? (d.phone || '') : ((ctx && ctx.last_phone) || '');
-      if (d) { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); ribNDF.precharger(d.rib ? [d.rib] : []); }
+      if (d) { tableauNDF.remplir(d.table); fichiersNDF.precharger(d.files); ribNDF.precharger(d.rib ? [d.rib] : []); presenceNDF.precharger(d.presence ? [d.presence] : []); }
       $('formTitre').textContent = d ? 'Modifier ma demande ' + d.id : 'Note de frais';
       $('banniere').textContent = 'Une fois envoyée, votre demande est mise à jour et le circuit de validation recommence.';
       $('banniere').classList.toggle('hidden', !d);
@@ -768,7 +784,7 @@
 
     function deconnecter() {
       creds = null; ctx = null; reqId = ''; modif = false; dejaEnvoyes.clear();
-      tableauNDF.vider(); fichiersNDF.vider(); ribNDF.vider();
+      tableauNDF.vider(); fichiersNDF.vider(); ribNDF.vider(); presenceNDF.vider();
       $('fNom').value = ''; $('fPrenom').value = ''; $('fTel').value = '';
       $('mail').value = ''; $('mdp').value = ''; $('loginErr').textContent = '';
       ecran('login');
@@ -814,25 +830,31 @@
       catch (x) { $('vErr').textContent = x.message; }
       finally { b.disabled = false; }
     };
-    $('vPdf').onclick = telechargerPdf('recap');
     $('vNdf').onclick = telechargerPdf('ndf');
     $('vSigned').onclick = telechargerPdf('ndf_signed');
 
-    // Dépôt de la note de frais signée (PDF)
+    // Dépôt de la note de frais signée (PDF) : la case « j'ai vérifié, daté et signé » doit être cochée
+    const majCaseSignature = () => {
+      const ok = $('vSignOk').checked;
+      $('vSignFile').disabled = !ok;
+      $('vSignLbl').classList.toggle('off', !ok);
+    };
+    $('vSignOk').onchange = majCaseSignature;
     $('vSignFile').onchange = async e => {
       const f = e.target.files[0]; e.target.value = '';
       if (!f) return;
       $('vErr').textContent = '';
+      if (!$('vSignOk').checked) { $('vErr').textContent = 'Cochez d’abord la case certifiant que vous avez vérifié, daté et signé la note de frais.'; return; }
       if (extension(f.name) !== 'pdf') { $('vErr').textContent = 'La note de frais signée doit être un fichier PDF.'; return; }
       if (!f.size || f.size > MAX_BYTES) { $('vErr').textContent = 'Fichier vide ou supérieur à ' + MAX_BYTES / 1048576 + ' Mo.'; return; }
       const entree = $('vSignFile'); entree.disabled = true;
       try {
-        await call({ action: 'sign_ndf', request_id: ctx.request.id, name: f.name, data: await base64(f) });
+        await call({ action: 'sign_ndf', request_id: ctx.request.id, name: f.name, data: await base64(f), certify: true });
         appliquerContexte(await call({ action: 'context' }));
         ctx.request ? montrerDemande() : ouvrirFormulaire(null);
         alert('Votre note de frais signée a bien été envoyée à la trésorerie.');
       } catch (x) { $('vErr').textContent = x.message; }
-      finally { entree.disabled = false; }
+      finally { majCaseSignature(); }
     };
 
     /* ===== 7. ENVOI ===== */
@@ -849,14 +871,14 @@
     $('send').onclick = async () => {
       if (enCours) return;
       $('sendErr').textContent = '';
-      if (![tableauNDF, fichiersNDF, ribNDF].map(c => c.valider()).concat(identiteOk()).every(Boolean)) {
+      if (![tableauNDF, fichiersNDF, ribNDF, presenceNDF].map(c => c.valider()).concat(identiteOk()).every(Boolean)) {
         $('sendErr').textContent = 'Certains champs sont à corriger (messages en rouge).'; return;
       }
       enCours = true; $('send').disabled = true; $('overlay').classList.remove('hidden'); progression('Préparation…', 5);
       try {
         if (!modif && !reqId) reqId = (await call({ action: 'new_request' })).request_id || '';
         if (!reqId) throw Error('Impossible d’obtenir un numéro de demande. Réessayez.');
-        const aEnvoyer = fichiersNDF.valeur(), rib = ribNDF.valeur()[0], total = aEnvoyer.length + 1, fileIds = [];
+        const aEnvoyer = fichiersNDF.valeur(), rib = ribNDF.valeur()[0], pres = presenceNDF.valeur()[0], total = aEnvoyer.length + 2, fileIds = [];
         const envoyer = async (f, kind, i) => {
           progression(`Envoi du fichier ${i + 1}/${total}…`, 10 + 80 * i / total);
           if (!f.fileId && !dejaEnvoyes.has(f)) dejaEnvoyes.set(f, (await call({ action: 'upload', request_id: reqId, kind, name: f.name, data: await base64(f) })).file_id);
@@ -864,8 +886,9 @@
         };
         for (let i = 0; i < aEnvoyer.length; i++) fileIds.push(await envoyer(aEnvoyer[i], 'justif', i));
         const ribId = await envoyer(rib, 'rib', aEnvoyer.length);
+        const presId = await envoyer(pres, 'presence', aEnvoyer.length + 1);
         progression('Enregistrement de la demande…', 92);
-        await call({ action: modif ? 'update' : 'submit', request_id: reqId, name: $('fNom').value.trim(), first_name: $('fPrenom').value.trim(), phone: $('fTel').value.trim(), table: tableauNDF.valeur(), file_ids: fileIds, rib_id: ribId });
+        await call({ action: modif ? 'update' : 'submit', request_id: reqId, name: $('fNom').value.trim(), first_name: $('fPrenom').value.trim(), phone: $('fTel').value.trim(), table: tableauNDF.valeur(), file_ids: fileIds, rib_id: ribId, presence_id: presId });
         appliquerContexte(await call({ action: 'context' }));   // recharge la demande à jour
         dejaEnvoyes.clear(); reqId = ''; modif = false;
         ctx.request ? montrerDemande() : ouvrirFormulaire(null);
